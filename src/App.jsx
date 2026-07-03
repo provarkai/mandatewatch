@@ -2286,6 +2286,9 @@ export default function MandateWatch() {
           padding: 0;
         }
         .mw-root * { box-sizing: border-box; }
+        .mw-root button, .mw-root input, .mw-root select, .mw-root textarea {
+          color: inherit; font: inherit;
+        }
 
         .mw-header {
           display: flex; align-items: center; justify-content: space-between;

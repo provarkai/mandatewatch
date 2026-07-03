@@ -2286,13 +2286,13 @@ export default function MandateWatch() {
           padding: 0;
         }
         .mw-root * { box-sizing: border-box; }
-        .mw-root button, .mw-root input, .mw-root select, .mw-root textarea {
+        button, input, select, textarea {
           color: inherit; font: inherit;
         }
 
         .mw-header {
           display: flex; align-items: center; justify-content: space-between;
-          padding: 20px 28px; border-bottom: 1px solid var(--line);
+          padding: 14px 28px; border-bottom: 1px solid var(--line);
           background: var(--paper); flex-wrap: wrap; row-gap: 10px;
         }
         .mw-wordmark {
@@ -2308,7 +2308,7 @@ export default function MandateWatch() {
         .mw-ticker b { color: var(--ink); }
 
         .mw-hero {
-          padding: 18px 28px 12px; border-bottom: none;
+          padding: 12px 28px 8px; border-bottom: none;
         }
         .mw-hero-split-text {
           max-width: 1080px; margin: 0 auto; display: flex; align-items: center; gap: 48px; flex-wrap: wrap;
@@ -2320,59 +2320,59 @@ export default function MandateWatch() {
           letter-spacing: 0.08em; color: var(--verdant); margin-bottom: 12px; display:block;
         }
         .mw-hero h1 {
-          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 32px; line-height: 1.08;
+          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 27px; line-height: 1.08;
           letter-spacing: -0.02em; margin: 0; color: var(--ink);
         }
         .mw-hero-lead {
-          font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 16px; color: var(--ink);
-          line-height: 1.3; margin: 0 0 8px;
+          font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink);
+          line-height: 1.28; margin: 0 0 6px;
         }
-        .mw-hero-sub { color: var(--ink-soft); font-size: 13px; line-height: 1.45; margin: 0 0 14px; }
+        .mw-hero-sub { color: var(--ink-soft); font-size: 12.5px; line-height: 1.4; margin: 0 0 10px; }
         .mw-hero-cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
-        .mw-hero-cta { flex: 0 0 auto; padding: 10px 18px; font-size: 11px; }
+        .mw-hero-cta { flex: 0 0 auto; padding: 8px 16px; font-size: 11px; }
 
         .mw-hero-split {
           display: flex; align-items: flex-start; justify-content: center; gap: 32px;
-          padding: 0 28px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap;
+          padding: 0 28px 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap;
         }
         .mw-hero-map-section {
-          display: flex; flex-direction: column; align-items: center; flex: 1 1 380px; min-width: 300px;
+          display: flex; flex-direction: column; align-items: center; flex: 1 1 340px; min-width: 260px;
         }
-        .mw-mandate-col { flex: 1 1 320px; max-width: 380px; display: flex; flex-direction: column; gap: 10px; padding-top: 0; }
+        .mw-mandate-col { flex: 1 1 320px; max-width: 380px; display: flex; flex-direction: column; gap: 7px; padding-top: 0; }
         .mw-mandate-heading {
-          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 20px; letter-spacing: -0.01em;
-          margin: 0 0 2px; color: var(--ink);
+          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 17px; letter-spacing: -0.01em;
+          margin: 0; color: var(--ink);
         }
         .mw-countdown {
-          background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px;
+          background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
         }
         .mw-countdown-label {
-          font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.03em;
-          color: var(--verdant); font-weight: 700; margin-bottom: 8px; line-height: 1.35;
+          font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em;
+          color: var(--verdant); font-weight: 700; margin-bottom: 5px; line-height: 1.3;
         }
         .mw-countdown-digits { display: flex; gap: 6px; }
         .mw-countdown-unit {
           flex: 1; background: var(--paper); border: 1px solid var(--line); border-radius: 6px;
-          padding: 6px 4px; text-align: center;
+          padding: 4px 4px; text-align: center;
         }
         .mw-countdown-unit span {
-          display: block; font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 17px; color: var(--ink);
+          display: block; font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 15px; color: var(--ink);
         }
         .mw-countdown-unit label {
           display: block; font-family: 'IBM Plex Mono', monospace; font-size: 8px; text-transform: uppercase;
           letter-spacing: 0.04em; color: var(--ink-soft); margin-top: 1px;
         }
-        .mw-countdown-date { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-soft); margin-top: 6px; text-align: right; }
+        .mw-countdown-date { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; color: var(--ink-soft); margin-top: 4px; text-align: right; }
         .mw-countdown-past { font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: var(--ink-soft); padding: 8px 0; }
 
         .mw-vote-poll {
-          background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px;
+          background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px;
         }
-        .mw-vote-poll-question { font-family: 'Archivo'; font-weight: 800; font-size: 15px; margin-bottom: 10px; }
+        .mw-vote-poll-question { font-family: 'Archivo'; font-weight: 800; font-size: 14px; margin-bottom: 7px; }
         .mw-vote-poll-buttons { display: flex; gap: 10px; }
         .mw-vote-poll-btn {
-          flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-          background: var(--paper); border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 8px;
+          flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+          background: var(--paper); border: 1.5px solid var(--line); border-radius: 8px; padding: 7px 8px;
           cursor: pointer; font-family: 'IBM Plex Mono', monospace; color: var(--ink);
         }
         .mw-vote-poll-btn span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -2390,7 +2390,7 @@ export default function MandateWatch() {
         }
         .mw-hero-map-label b { color: var(--ink); font-weight: 800; font-size: 14px; letter-spacing: 0.02em; }
         .mw-map-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-        .mw-map-svg { width: 480px; max-width: 86vw; height: auto; }
+        .mw-map-svg { width: 400px; max-width: 86vw; height: auto; }
         .mw-map-path {
           stroke: var(--paper); stroke-width: 1.5; cursor: pointer;
           transition: filter 0.12s;

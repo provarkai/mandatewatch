@@ -2324,12 +2324,13 @@ export default function MandateWatch() {
           letter-spacing: -0.02em; margin: 0; color: var(--ink);
         }
         .mw-hero-lead {
-          font-family: 'Archivo', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink);
-          line-height: 1.28; margin: 0 0 6px;
+          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 19px; color: var(--ink);
+          line-height: 1.25; margin: 0 0 8px; letter-spacing: -0.01em;
         }
-        .mw-hero-sub { color: var(--ink-soft); font-size: 12.5px; line-height: 1.4; margin: 0 0 10px; }
-        .mw-hero-cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
-        .mw-hero-cta { flex: 0 0 auto; padding: 8px 16px; font-size: 11px; }
+        .mw-hero-sub {
+          font-family: 'Inter', sans-serif; font-weight: 600; color: var(--ink); font-size: 14px;
+          line-height: 1.45; margin: 0;
+        }
 
         .mw-hero-split {
           display: flex; align-items: flex-start; justify-content: center; gap: 32px;
@@ -2754,7 +2755,6 @@ export default function MandateWatch() {
           .mw-hero { padding: 24px 18px 20px; }
           .mw-hero-split-text { flex-direction: column; gap: 20px; text-align: center; }
           .mw-hero h1 { font-size: 28px; }
-          .mw-hero-cta-row { justify-content: center; }
           .mw-hero-split { padding: 0 16px 24px; flex-direction: column; align-items: center; gap: 24px; }
           .mw-mandate-col { max-width: 100%; width: 100%; }
           .mw-map-svg { width: 360px; }
@@ -2829,23 +2829,6 @@ export default function MandateWatch() {
           <div className="mw-hero-copy-col">
             <p className="mw-hero-lead">They asked for your vote. Now they answer to it.</p>
             <p className="mw-hero-sub">Track approval ratings, constituency projects, citizen demands, and election sentiment for every elected representative in Nigeria — all in one place.</p>
-            <div className="mw-hero-cta-row">
-              <button
-                className="mw-btn mw-btn-primary mw-hero-cta"
-                onClick={() => {
-                  setTab("reps");
-                  setTimeout(() => repsGridRef.current && repsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
-                }}
-              >
-                Explore Representatives
-              </button>
-              <button
-                className="mw-btn mw-btn-ghost mw-hero-cta"
-                onClick={() => mandateColRef.current && mandateColRef.current.scrollIntoView({ behavior: "smooth", block: "start" })}
-              >
-                See Live Polls
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -2873,7 +2856,7 @@ export default function MandateWatch() {
 
         <div className="mw-mandate-col" ref={mandateColRef}>
           <h3 className="mw-mandate-heading">Next Mandate</h3>
-          <CountdownTimer label="Presidential/House Of Assembly Election" date="2027-01-16T08:00:00" />
+          <CountdownTimer label="Presidential/National Assembly Election" date="2027-01-16T08:00:00" />
           <CountdownTimer label="Governorship/State House Of Assembly Election" date="2027-02-06T08:00:00" />
           <VotePoll />
         </div>

@@ -1582,6 +1582,18 @@ function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user }) {
 --------------------------------------------------------------- */
 
 export default function MandateWatch() {
+  // Temporary — exposes the real client to the console for direct debugging of a
+  // production-only signInWithOtp failure. Attached inside the component (not as a
+  // module-level side effect) so it survives production tree-shaking. Remove once root-caused.
+  useEffect(() => {
+    window.__supabase = supabase;
+    window.__envDiag = {
+      isSecureContext: window.isSecureContext,
+      hasCryptoSubtle: typeof crypto?.subtle !== "undefined",
+      userAgent: navigator.userAgent,
+    };
+  }, []);
+
   const [tab, setTab] = useState("reps");
   const [query, setQuery] = useState("");
   const [chamberFilter, setChamberFilter] = useState("All");

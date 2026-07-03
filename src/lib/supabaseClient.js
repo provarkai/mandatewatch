@@ -11,14 +11,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Temporary — exposes the real client to the console for direct debugging of a production-only
-// signInWithOtp failure. Remove once root-caused.
-if (typeof window !== "undefined") {
-  window.__supabase = supabase;
-  window.__envDiag = {
-    isSecureContext: window.isSecureContext,
-    hasCryptoSubtle: typeof crypto?.subtle !== "undefined",
-    userAgent: navigator.userAgent,
-  };
-}

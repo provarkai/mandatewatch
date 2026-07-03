@@ -7,6 +7,8 @@ import {
   REGIONS, LGAS_BY_STATE, SEN_DISTRICTS, FED_CONSTITUENCIES, STATE_CONSTITUENCIES,
   regionOf, normalizeDistrictName, getCoverage, constituencyMatches, repCoversArea,
 } from "./data/geography";
+import { supabase } from "./lib/supabaseClient";
+import { useAuth } from "./hooks/useAuth";
 
 /* ---------------------------------------------------------------
    SAMPLE DATA — illustrative only, fictional names, not real people
@@ -1286,52 +1288,60 @@ function StewardshipPage({ rep, entries, isActingAsRep, verifiedIds, onAdd, onVe
   );
 }
 
-function AuthModal({ open, onClose, onComplete }) {
+function AuthModal({ open, onClose, onComplete, pendingAuthUser }) {
   const [step, setStep] = useState("email");
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [state, setState] = useState("");
   const [lga, setLga] = useState("");
-  const [via, setVia] = useState("email");
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [verifiedUser, setVerifiedUser] = useState(null); // { id, email } once a session exists
 
   useEffect(() => {
-    if (open) { setStep("email"); setEmail(""); setOtp(""); setName(""); setPhone(""); setState(""); setLga(""); setVia("email"); setError(""); }
-  }, [open]);
+    if (!open) return;
+    setName(""); setPhone(""); setState(""); setLga(""); setError(""); setBusy(false);
+    if (pendingAuthUser) {
+      // Arrived here because a magic-link click already produced a session with no profile
+      // row yet — skip straight to collecting the signup details, no email step needed.
+      setVerifiedUser(pendingAuthUser);
+      setEmail(pendingAuthUser.email);
+      setStep("details");
+    } else {
+      setEmail(""); setVerifiedUser(null); setStep("email");
+    }
+  }, [open, pendingAuthUser]);
 
   if (!open) return null;
 
-  function sendCode() {
+  async function sendLink() {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setError("Enter a valid email address"); return; }
     setError("");
-    setStep("otp");
+    setBusy(true);
+    const { error: sendError } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setBusy(false);
+    if (sendError) { setError(sendError.message); return; }
+    setStep("sent");
   }
 
-  function verifyCode() {
-    // Simulated for the prototype — any 4-digit code is accepted, matching the demo hint shown below.
-    if (!/^\d{4}$/.test(otp.trim())) { setError("Enter the 4-digit code sent to your email"); return; }
-    setError("");
-    setStep("details");
-  }
-
-  function signInWithSocial(provider) {
-    // Simulated for the prototype — a real integration would use the provider's OAuth flow and
-    // return a verified email directly, skipping the OTP step entirely.
-    setVia(provider);
-    setEmail(email.trim() || `you@${provider.toLowerCase()}.example`);
-    setError("");
-    setStep("details");
-  }
-
-  function finish() {
+  async function finish() {
     if (!name.trim() || !phone.trim() || !state || !lga.trim()) {
       setError("Add your name, phone number, state, and LGA to finish signing up");
       return;
     }
     if (!/^0\d{10}$/.test(phone.trim())) { setError("Enter a valid 11-digit Nigerian number, e.g. 08012345678"); return; }
-    onComplete({ email: email.trim(), name: name.trim(), phone: phone.trim(), state, lga: lga.trim(), via });
+    setError("");
+    setBusy(true);
+    const { error: insertError } = await supabase.from("profiles").insert({
+      id: verifiedUser.id, name: name.trim(), phone: phone.trim(), state_code: state, lga: lga.trim(),
+    });
+    setBusy(false);
+    if (insertError) { setError(insertError.message); return; }
+    onComplete({ id: verifiedUser.id, email: verifiedUser.email, name: name.trim(), phone: phone.trim(), state, lga: lga.trim() });
   }
 
   return (
@@ -1341,50 +1351,37 @@ function AuthModal({ open, onClose, onComplete }) {
         <div className="mw-section-eyebrow">Sign up to vote &amp; file demands</div>
         <h2 className="mw-modal-name" style={{ marginBottom: 16 }}>
           {step === "email" && "Sign up or sign in"}
-          {step === "otp" && "Enter the code we sent"}
+          {step === "sent" && "Check your email"}
           {step === "details" && "Almost done"}
         </h2>
 
         {step === "email" && (
           <>
-            <div className="mw-social-buttons">
-              <button className="mw-social-btn" onClick={() => signInWithSocial("Google")}>
-                <span className="mw-social-icon mw-social-google">G</span> Continue with Google
-              </button>
-              <button className="mw-social-btn" onClick={() => signInWithSocial("Facebook")}>
-                <span className="mw-social-icon mw-social-facebook">f</span> Continue with Facebook
-              </button>
-            </div>
-            <div className="mw-form-divider"><span>or use email</span></div>
             <label className="mw-form-label">Email address</label>
             <input className="mw-form-input" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <div className="mw-form-hint">We'll email you a link — click it to sign in, no password needed.</div>
             {error && <div className="mw-form-error">{error}</div>}
             <div className="mw-modal-actions">
-              <button className="mw-btn mw-btn-primary" onClick={sendCode}>Send code</button>
+              <button className="mw-btn mw-btn-primary" onClick={sendLink} disabled={busy}>{busy ? "Sending…" : "Send sign-in link"}</button>
             </div>
           </>
         )}
 
-        {step === "otp" && (
+        {step === "sent" && (
           <>
             <p className="mw-pulse-question" style={{ marginTop: 0 }}>
-              We sent a 4-digit code to <b>{email}</b>. (Prototype demo — any 4 digits work, try <b>1234</b>.)
+              We sent a sign-in link to <b>{email}</b>. Open that email and click the link to
+              continue — you can close this window, it'll pick up automatically once you're back.
             </p>
-            <label className="mw-form-label">Verification code</label>
-            <input className="mw-form-input" placeholder="1234" value={otp} onChange={(e) => setOtp(e.target.value)} maxLength={4} />
-            {error && <div className="mw-form-error">{error}</div>}
             <div className="mw-modal-actions">
-              <button className="mw-btn mw-btn-primary" onClick={verifyCode}>Verify</button>
-              <button className="mw-btn mw-btn-ghost" onClick={() => setStep("email")}>Back</button>
+              <button className="mw-btn mw-btn-ghost" onClick={() => setStep("email")} disabled={busy}>Use a different email</button>
             </div>
           </>
         )}
 
         {step === "details" && (
           <>
-            {via !== "email" && (
-              <div className="mw-form-hint" style={{ marginBottom: 10 }}>Signed in with {via} as <b>{email}</b>.</div>
-            )}
+            <div className="mw-form-hint" style={{ marginBottom: 10 }}>Verified as <b>{email}</b>.</div>
             <label className="mw-form-label">Full name or initials</label>
             <input className="mw-form-input" placeholder="e.g. Muyiwa Adeyemi or M.A." value={name} onChange={(e) => setName(e.target.value)} />
             <div className="mw-form-hint">Shown publicly on demands you file — use initials if you'd rather not share your full name.</div>
@@ -1418,7 +1415,7 @@ function AuthModal({ open, onClose, onComplete }) {
 
             {error && <div className="mw-form-error">{error}</div>}
             <div className="mw-modal-actions">
-              <button className="mw-btn mw-btn-primary" onClick={finish}>Finish signing up</button>
+              <button className="mw-btn mw-btn-primary" onClick={finish} disabled={busy}>{busy ? "Saving…" : "Finish signing up"}</button>
             </div>
           </>
         )}
@@ -1601,7 +1598,14 @@ export default function MandateWatch() {
   const [upvotedIds, setUpvotedIds] = useState([]);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitPrefillRepId, setSubmitPrefillRepId] = useState(null);
-  const [user, setUser] = useState(null);
+  const { user, setUser, authUser, needsProfile, signOut } = useAuth();
+
+  // Landed back here after clicking a magic-link email with no profile yet (first-time signup) —
+  // jump straight to collecting name/phone/state/lga instead of requiring the user to click
+  // "Sign up" again.
+  useEffect(() => {
+    if (needsProfile) setAuthOpen(true);
+  }, [needsProfile]);
   const [authOpen, setAuthOpen] = useState(false);
 
   const [threadsList, setThreadsList] = useState(THREADS);
@@ -1662,20 +1666,102 @@ export default function MandateWatch() {
 
   const repById = useMemo(() => Object.fromEntries(repsData.map((r) => [r.id, r])), [repsData]);
   const openRep = openRepId ? repById[openRepId] : null;
+  const localRepById = useMemo(() => Object.fromEntries(REPS.map((r) => [r.id, r])), []);
 
-  function handleRepVote(repId, field, direction) {
-    setRepVotes((prev) => {
-      if (prev[repId]?.[field]) return prev;
-      return { ...prev, [repId]: { ...prev[repId], [field]: direction } };
-    });
+  // Live representatives + scores from Supabase, replacing the bundled REPS array on load.
+  // demands/topDemand/status have no home in this slice's schema yet, so they're merged in
+  // from the local REPS module until a later Demands slice replaces them with a real count.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("representatives")
+      .select("*, rep_scores(*)")
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        const merged = data.map((row) => {
+          const scores = row.rep_scores || {};
+          const approvalTotal = (scores.approval_up ?? 0) + (scores.approval_down ?? 0);
+          const presenceTotal = (scores.presence_up ?? 0) + (scores.presence_down ?? 0);
+          const local = localRepById[row.id] || {};
+          return {
+            id: row.id,
+            name: row.name,
+            chamber: row.chamber,
+            state: row.state_code,
+            constituency: row.constituency,
+            lga: row.lga,
+            town: row.town,
+            party: row.party_code,
+            photoUrl: row.photo_url || undefined,
+            role: row.role || undefined,
+            electedYear: row.elected_year,
+            termStart: row.term_start,
+            termEnd: row.term_end,
+            termNumber: row.term_number,
+            approval: approvalTotal > 0 ? Math.round((scores.approval_up / approvalTotal) * 100) : 50,
+            presence: presenceTotal > 0 ? Math.round((scores.presence_up / presenceTotal) * 100) : 50,
+            demands: local.demands ?? 0,
+            topDemand: local.topDemand ?? "No demands filed yet — be the first.",
+            status: local.status ?? "ON WATCH",
+          };
+        });
+        if (merged.length > 0) setRepsData(merged);
+      });
+    return () => { cancelled = true; };
+  }, [localRepById]);
+
+  // Hydrate which reps/fields the signed-in user has already voted on, so buttons still show
+  // "already voted" after a reload — not just within the current session.
+  useEffect(() => {
+    if (!user) { setRepVotes({}); return; }
+    let cancelled = false;
+    supabase
+      .from("rep_votes")
+      .select("rep_id, field, direction")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        const votes = {};
+        for (const v of data) {
+          votes[v.rep_id] = { ...votes[v.rep_id], [v.field]: v.direction };
+        }
+        setRepVotes(votes);
+      });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  async function handleRepVote(repId, field, direction) {
+    if (!user) { setAuthOpen(true); return; }
+    if (repVotes[repId]?.[field]) return; // already voted, RLS would reject this anyway
+
+    // Optimistic local update first — the unique constraint on (rep_id, user_id, field) is the
+    // real enforcement point; this is just responsive UI, corrected below if the insert fails.
+    setRepVotes((prev) => ({ ...prev, [repId]: { ...prev[repId], [field]: direction } }));
     setRepsData((prev) =>
       prev.map((r) => {
         if (r.id !== repId) return r;
-        if (repVotes[repId]?.[field]) return r;
         const delta = direction === "up" ? 1 : -1;
         return { ...r, [field]: Math.max(0, Math.min(100, r[field] + delta)) };
       })
     );
+
+    const { error } = await supabase.from("rep_votes").insert({ rep_id: repId, user_id: user.id, field, direction });
+    if (error) {
+      // Most likely a duplicate vote from another tab/device — revert the optimistic update
+      // rather than leave the UI showing a vote that wasn't actually recorded.
+      setRepVotes((prev) => {
+        const next = { ...prev };
+        if (next[repId]) { const { [field]: _drop, ...rest } = next[repId]; next[repId] = rest; }
+        return next;
+      });
+      setRepsData((prev) =>
+        prev.map((r) => {
+          if (r.id !== repId) return r;
+          const delta = direction === "up" ? -1 : 1;
+          return { ...r, [field]: Math.max(0, Math.min(100, r[field] + delta)) };
+        })
+      );
+    }
   }
 
   const filteredDemands = useMemo(() => {
@@ -2141,7 +2227,7 @@ export default function MandateWatch() {
         }
         .mw-comment-row-official { background: rgba(169,121,31,0.06); border-radius: 8px; padding: 8px; margin: -8px; }
         .mw-modal-header { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
-        .mw-modal-name { font-family: 'Archivo'; font-weight: 900; font-size: 20px; margin: 0 0 4px; }
+        .mw-modal-name { font-family: 'Archivo'; font-weight: 900; font-size: 20px; margin: 0 0 4px; color: var(--ink); }
         .mw-pulse-block { margin-bottom: 18px; }
         .mw-pulse-question { font-size: 11.5px; color: var(--ink-soft); margin: 6px 0 8px; }
         .mw-pulse-buttons { display: flex; gap: 8px; }
@@ -2363,7 +2449,7 @@ export default function MandateWatch() {
               <CheckCircle2 size={13} />
               <span>{user.name} · {user.lga} LGA, {user.state}</span>
             </button>
-            <button className="mw-link-btn" onClick={() => setUser(null)}>Sign out</button>
+            <button className="mw-link-btn" onClick={() => signOut()}>Sign out</button>
           </div>
         ) : (
           <button className="mw-btn mw-btn-primary mw-auth-btn" onClick={() => setAuthOpen(true)}>Sign up / Sign in</button>
@@ -2374,6 +2460,7 @@ export default function MandateWatch() {
         open={authOpen}
         onClose={() => setAuthOpen(false)}
         onComplete={(u) => { setUser(u); setAuthOpen(false); }}
+        pendingAuthUser={needsProfile ? { id: authUser.id, email: authUser.email } : null}
       />
 
       {!openRepId && !userProfileOpen && !stewardshipRepId && (
@@ -2664,7 +2751,7 @@ export default function MandateWatch() {
         <UserProfilePage
           user={user}
           onBack={() => setUserProfileOpen(false)}
-          onSignOut={() => { setUser(null); setUserProfileOpen(false); }}
+          onSignOut={() => { signOut(); setUserProfileOpen(false); }}
           myDemands={demandsList.filter((d) => d.submittedBy === user.name)}
           myComments={commentsList.filter((c) => c.author === user.name)}
           myVotedReps={Object.entries(repVotes).map(([repId, votes]) => ({ repId: Number(repId), votes }))}

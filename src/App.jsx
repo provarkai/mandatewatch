@@ -2297,7 +2297,7 @@ export default function MandateWatch() {
           background: var(--paper); flex-wrap: wrap; row-gap: 10px;
         }
         .mw-wordmark { display: flex; align-items: center; }
-        .mw-wordmark-logo { height: 54px; width: auto; display: block; }
+        .mw-wordmark-logo { height: 64px; width: auto; display: block; }
         .mw-ticker {
           font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.04em;
           color: var(--ink-soft); text-transform: uppercase; display: flex; gap: 18px;
@@ -2757,7 +2757,7 @@ export default function MandateWatch() {
           .mw-mandate-col { max-width: 100%; width: 100%; }
           .mw-map-svg { width: 360px; }
           .mw-header { padding: 14px 16px; }
-          .mw-wordmark-logo { height: 40px; }
+          .mw-wordmark-logo { height: 46px; }
           .mw-ticker { font-size: 10px; gap: 8px 12px; width: 100%; }
           .mw-auth-btn { width: 100%; }
           .mw-auth-pill { width: 100%; justify-content: space-between; box-sizing: border-box; }

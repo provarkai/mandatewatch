@@ -23,9 +23,23 @@ async function loadProfile(sessionUser) {
   };
 }
 
+// Not a column on `profiles` -- see the `admins` table comment in
+// supabase/migrations/0002_demands_and_admin.sql for why that would be a privilege-escalation
+// hole. Absence of a row (or any error/RLS denial) just means "not an admin," not a fatal error.
+async function loadIsAdmin(sessionUser) {
+  if (!sessionUser) return false;
+  const { data } = await supabase
+    .from("admins")
+    .select("user_id")
+    .eq("user_id", sessionUser.id)
+    .maybeSingle();
+  return !!data;
+}
+
 export function useAuth() {
   const [user, setUser] = useState(null);       // fully signed in: session + profile row
   const [authUser, setAuthUser] = useState(null); // raw Supabase auth user, may exist without a profile
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function sync(sessionUser) {
@@ -34,9 +48,10 @@ export function useAuth() {
     // authUser is truthy but user is still null -- which needsProfile below reads as "signed
     // in but never finished signup," incorrectly popping the signup modal open for a user
     // who's actually fully signed in and just waiting on this same async lookup to finish.
-    const profile = await loadProfile(sessionUser);
+    const [profile, admin] = await Promise.all([loadProfile(sessionUser), loadIsAdmin(sessionUser)]);
     setAuthUser(sessionUser);
     setUser(profile);
+    setIsAdmin(admin);
   }
 
   useEffect(() => {
@@ -67,7 +82,8 @@ export function useAuth() {
     await supabase.auth.signOut();
     setUser(null);
     setAuthUser(null);
+    setIsAdmin(false);
   }, []);
 
-  return { user, setUser, authUser, needsProfile, loading, signOut };
+  return { user, setUser, authUser, needsProfile, isAdmin, loading, signOut };
 }

@@ -48,22 +48,6 @@ const ASPIRANTS = [];
 
 const CHAMBERS = ["All", "Governor", "Senate", "House of Reps", "State Assembly"];
 
-// Demo content grounded in real, current (July 2026) state-level news — tied to real reps from the
-// directory above, but filed under fictional citizen identities (initials only). Not scraped verbatim
-// from any article; each entry is an original citizen framing of a real, ongoing local issue.
-const DEMANDS = [
-  { id: 1, repId: 423, title: "Audit every distressed market building before another one collapses", description: "Article Shopping Complex and the Coker/Agric markets were just flagged as structurally unsafe after sitting on a 2026 danger list for months. Traders are still operating inside. We need a state-wide audit, not building-by-building enforcement after the fact.", submittedBy: "T.A.", submittedByLga: "Amuwo Odofin", upvotes: 340, status: "acknowledged", createdAt: "2026-06-30" },
-  { id: 2, repId: 431, title: "Stop the extortion of commercial drivers by roadside thugs", description: "Civil society groups have already flagged the harassment and illegal levies drivers face on Port Harcourt routes. It's driving up transport costs for everyone else. We need visible enforcement, not just a statement acknowledging the problem.", submittedBy: "C.N.", submittedByLga: "Obio/Akpor", upvotes: 212, status: "open", createdAt: "2026-04-18" },
-  { id: 3, repId: 418, title: "Finish the Challawa/Tamburawa water treatment upgrade on schedule", description: "The ₦21.89bn approval for rehabilitating both plants was a big deal for households still relying on water vendors. Please publish a completion timeline so we can actually hold this to a date.", submittedBy: "A.M.", submittedByLga: "Kano Municipal", upvotes: 588, status: "acknowledged", createdAt: "2026-05-02" },
-  { id: 4, repId: 413, title: "Complete the 30-year stalled Mgbidi bridge in Awgu LGA", description: "Two autonomous communities in Mgbidi have been cut off by an unfinished bridge since the community started building it themselves three decades ago. It's over halfway done and just needs government to finish what residents started. Farmers are losing income every rainy season this drags on.", submittedBy: "T.N.", submittedByLga: "Awgu", upvotes: 176, status: "open", createdAt: "2026-07-01" },
-  { id: 5, repId: 417, title: "Match the security gains in Southern Kaduna with real infrastructure spending", description: "Security has genuinely improved and people say so — but Southern Kaduna communities are still asking for the roads and infrastructure investment to catch up. Safety without development isn't the whole job.", submittedBy: "H.E.", submittedByLga: "Kaura", upvotes: 143, status: "open", createdAt: "2026-06-12" },
-  { id: 6, repId: 407, title: "Publish a public, line-item breakdown of the ₦892bn 2026 state budget", description: "The Appropriation Bill was signed into law in January but most residents have never seen where the money is actually going beyond headline totals. A simple public dashboard would go a long way.", submittedBy: "U.K.", submittedByLga: "Maiduguri", upvotes: 98, status: "open", createdAt: "2026-02-10" },
-  { id: 7, repId: 429, title: "Extend the Cleanest Market of the Month award beyond Ibadan's big markets", description: "Good initiative, but Ogbomosho and Saki traders haven't seen any of the sanitation support that's been promised for the flagship markets. Spread the programme out from the start, not after year one.", submittedBy: "B.O.", submittedByLga: "Ogbomosho North", upvotes: 64, status: "open", createdAt: "2026-07-02" },
-  { id: 8, repId: 400, title: "Clear the ₦60bn pension arrears owed to Abia workers since 2001", description: "Some of these retirees have been owed for over two decades. The pledge to clear it is welcome — we want a public repayment schedule, not just a promise.", submittedBy: "N.E.", submittedByLga: "Umuahia North", upvotes: 421, status: "acknowledged", createdAt: "2026-06-29" },
-  { id: 9, repId: 426, title: "Fix rural feeder roads before the next planting season, not after", description: "Farmers around Sagamu and Ijebu are losing produce because buyers won't risk the roads in the rainy season. This comes up every year and every year it's addressed too late.", submittedBy: "F.A.", submittedByLga: "Sagamu", upvotes: 87, status: "open", createdAt: "2026-05-20" },
-  { id: 10, repId: 409, title: "Fast-track compensation for oil-producing host communities", description: "Communities hosting extraction infrastructure are still waiting on compensation processes that move slower than the damage does. We need a transparent tracker for pending claims.", submittedBy: "P.O.", submittedByLga: "Warri", upvotes: 152, status: "open", createdAt: "2026-04-05" },
-];
-
 const DEMAND_STATUS_STAMP = {
   open: "stamp-verdant",
   acknowledged: "stamp-brass",
@@ -1092,7 +1076,7 @@ function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsLis
       <div className="mw-section-eyebrow">Admin — no-code data entry</div>
       <h2 className="mw-modal-name" style={{ marginBottom: 4 }}>Manage MandateWatch Data</h2>
       <div className="mw-form-hint" style={{ marginBottom: 16 }}>
-        Prototype demo — this panel has no real access control yet. A real launch needs this locked behind actual admin authentication before going live.
+        Prototype demo — access is gated to allowlisted admin accounts, but changes made here still only apply to this browser session, not the live database.
       </div>
 
       <div className="mw-admin-tabs">
@@ -1594,7 +1578,7 @@ export default function MandateWatch() {
   const [aspirantQuery, setAspirantQuery] = useState("");
   const [aspirantStateFilter, setAspirantStateFilter] = useState("All");
 
-  const [demandsList, setDemandsList] = useState(DEMANDS);
+  const [demandsList, setDemandsList] = useState([]);
   const [aspirantsList, setAspirantsList] = useState(ASPIRANTS);
   const [demandQuery, setDemandQuery] = useState("");
   const [demandStateFilter, setDemandStateFilter] = useState("All");
@@ -1603,7 +1587,7 @@ export default function MandateWatch() {
   const [upvotedIds, setUpvotedIds] = useState([]);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitPrefillRepId, setSubmitPrefillRepId] = useState(null);
-  const { user, setUser, authUser, needsProfile, signOut } = useAuth();
+  const { user, setUser, authUser, needsProfile, isAdmin, signOut } = useAuth();
 
   // Landed back here after clicking a magic-link email with no profile yet (first-time signup) —
   // jump straight to collecting name/phone/state/lga instead of requiring the user to click
@@ -1735,6 +1719,49 @@ export default function MandateWatch() {
     return () => { cancelled = true; };
   }, [user]);
 
+  // Live demands from Supabase, replacing the bundled DEMANDS mock data on load.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("demands")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setDemandsList(
+          data.map((row) => ({
+            id: row.id,
+            repId: row.rep_id,
+            title: row.title,
+            description: row.description,
+            submittedBy: row.submitted_by_name,
+            submittedByLga: row.submitted_by_lga,
+            upvotes: row.upvotes,
+            status: row.status,
+            attachmentNames: [], // attachments stay session-local, never uploaded — see SubmitDemandModal
+            createdAt: row.created_at.slice(0, 10),
+          }))
+        );
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hydrate which demands the signed-in user has already upvoted, so the button still shows
+  // "already upvoted" after a reload — not just within the current session.
+  useEffect(() => {
+    if (!user) { setUpvotedIds([]); return; }
+    let cancelled = false;
+    supabase
+      .from("demand_upvotes")
+      .select("demand_id")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setUpvotedIds(data.map((row) => row.demand_id));
+      });
+    return () => { cancelled = true; };
+  }, [user]);
+
   async function handleRepVote(repId, field, direction) {
     if (!user) { setAuthOpen(true); return; }
     if (repVotes[repId]?.[field]) return; // already voted, RLS would reject this anyway
@@ -1786,10 +1813,22 @@ export default function MandateWatch() {
     return list;
   }, [demandsList, demandQuery, demandStateFilter, demandStatusFilter, demandSort, repById]);
 
-  function handleUpvote(demandId) {
+  async function handleUpvote(demandId) {
+    if (!user) { setAuthOpen(true); return; }
     if (upvotedIds.includes(demandId)) return;
+
+    // Optimistic local update first — the unique constraint on (demand_id, user_id) is the real
+    // enforcement point; this is just responsive UI, corrected below if the insert fails.
     setUpvotedIds((prev) => [...prev, demandId]);
     setDemandsList((prev) => prev.map((d) => (d.id === demandId ? { ...d, upvotes: d.upvotes + 1 } : d)));
+
+    const { error } = await supabase.from("demand_upvotes").insert({ demand_id: demandId, user_id: user.id });
+    if (error) {
+      // Most likely a duplicate upvote from another tab/device — revert the optimistic update
+      // rather than leave the UI showing an upvote that wasn't actually recorded.
+      setUpvotedIds((prev) => prev.filter((id) => id !== demandId));
+      setDemandsList((prev) => prev.map((d) => (d.id === demandId ? { ...d, upvotes: d.upvotes - 1 } : d)));
+    }
   }
 
   function handleAcknowledgeDemand(demandId, newStatus) {
@@ -1844,25 +1883,44 @@ export default function MandateWatch() {
     setStewardshipList((prev) => prev.map((e) => (e.id === entryId ? { ...e, verifiedCount: e.verifiedCount + 1 } : e)));
   }
 
-  function handleSubmitDemand({ title, description, repId, attachmentNames }) {
-    const newDemand = {
-      id: Date.now(),
-      repId,
-      title,
-      description: description || "No further details provided.",
-      submittedBy: user ? user.name : "You",
-      submittedByLga: user ? user.lga : null,
-      upvotes: 1,
-      status: "open",
-      attachmentNames: attachmentNames || [],
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-    setDemandsList((prev) => [newDemand, ...prev]);
-    setUpvotedIds((prev) => [...prev, newDemand.id]);
+  async function handleSubmitDemand({ title, description, repId }) {
+    if (!user) { setSubmitOpen(false); setAuthOpen(true); return; }
+
+    const { data, error } = await supabase
+      .from("demands")
+      .insert({
+        rep_id: repId,
+        user_id: user.id,
+        title,
+        description: description || "No further details provided.",
+        submitted_by_name: user.name,
+        submitted_by_lga: user.lga,
+      })
+      .select()
+      .single();
+    if (error || !data) return;
+
+    setDemandsList((prev) => [
+      {
+        id: data.id,
+        repId: data.rep_id,
+        title: data.title,
+        description: data.description,
+        submittedBy: data.submitted_by_name,
+        submittedByLga: data.submitted_by_lga,
+        upvotes: data.upvotes, // starts at 1 — the seed_demand_self_upvote() trigger already ran
+        status: data.status,
+        attachmentNames: [], // attachments stay session-local, never uploaded — see SubmitDemandModal
+        createdAt: data.created_at.slice(0, 10),
+      },
+      ...prev,
+    ]);
+    setUpvotedIds((prev) => [...prev, data.id]);
     setSubmitOpen(false);
   }
 
   function openSubmitForRep(repId) {
+    if (!user) { setAuthOpen(true); return; }
     setSubmitPrefillRepId(repId);
     setSubmitOpen(true);
   }
@@ -2703,7 +2761,7 @@ export default function MandateWatch() {
         </>
       )}
 
-      {tab === "admin" && (
+      {tab === "admin" && isAdmin && (
         <AdminPanel
           repsData={repsData}
           onAddRep={handleAddRep}
@@ -2801,12 +2859,14 @@ export default function MandateWatch() {
         <div>
           MANDATEWATCH — prototype build. Representative names, parties, and constituencies are real, sourced from nass.gov.ng and Wikipedia's Nigeria Governors' Forum page. Approval, felt-presence, and demand data are generated by platform users, not scraped. Directory coverage is partial — see project notes for gaps. <ArrowUpRight size={11} style={{ display: "inline", verticalAlign: "middle" }} />
         </div>
-        <button
-          className="mw-footer-admin-link"
-          onClick={() => { setOpenRepId(null); setUserProfileOpen(false); setStewardshipRepId(null); setTab("admin"); }}
-        >
-          Admin
-        </button>
+        {isAdmin && (
+          <button
+            className="mw-footer-admin-link"
+            onClick={() => { setOpenRepId(null); setUserProfileOpen(false); setStewardshipRepId(null); setTab("admin"); }}
+          >
+            Admin
+          </button>
+        )}
       </footer>
     </div>
   );

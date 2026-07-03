@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { Search, MapPin, ChevronRight, ThumbsUp, ThumbsDown, Plus, X, TrendingUp, Users, Landmark, CheckCircle2, ArrowUpRight, MessageSquare, CornerDownRight, Paperclip } from "lucide-react";
+import { Search, MapPin, ChevronRight, ThumbsUp, ThumbsDown, Plus, X, TrendingUp, Users, CheckCircle2, ArrowUpRight, MessageSquare, CornerDownRight, Paperclip } from "lucide-react";
+import logo from "./assets/logo.png";
 
 /* ---------------------------------------------------------------
    SAMPLE DATA — illustrative only, fictional names, not real people
@@ -2295,11 +2296,8 @@ export default function MandateWatch() {
           padding: 14px 28px; border-bottom: 1px solid var(--line);
           background: var(--paper); flex-wrap: wrap; row-gap: 10px;
         }
-        .mw-wordmark {
-          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 20px;
-          letter-spacing: -0.02em; color: var(--ink); display: flex; align-items: center; gap: 8px;
-        }
-        .mw-wordmark span { color: var(--verdant); }
+        .mw-wordmark { display: flex; align-items: center; }
+        .mw-wordmark-logo { height: 46px; width: auto; display: block; }
         .mw-ticker {
           font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.04em;
           color: var(--ink-soft); text-transform: uppercase; display: flex; gap: 18px;
@@ -2341,8 +2339,8 @@ export default function MandateWatch() {
         }
         .mw-mandate-col { flex: 1 1 320px; max-width: 380px; display: flex; flex-direction: column; gap: 7px; padding-top: 0; }
         .mw-mandate-heading {
-          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 17px; letter-spacing: -0.01em;
-          margin: 0; color: var(--ink);
+          font-family: 'Archivo', sans-serif; font-weight: 900; font-size: 22px; letter-spacing: -0.02em;
+          margin: 0 0 2px; color: var(--ink);
         }
         .mw-countdown {
           background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
@@ -2759,6 +2757,7 @@ export default function MandateWatch() {
           .mw-mandate-col { max-width: 100%; width: 100%; }
           .mw-map-svg { width: 360px; }
           .mw-header { padding: 14px 16px; }
+          .mw-wordmark-logo { height: 36px; }
           .mw-ticker { font-size: 10px; gap: 8px 12px; width: 100%; }
           .mw-auth-btn { width: 100%; }
           .mw-auth-pill { width: 100%; justify-content: space-between; box-sizing: border-box; }
@@ -2794,7 +2793,7 @@ export default function MandateWatch() {
       `}</style>
 
       <header className="mw-header">
-        <div className="mw-wordmark"><Landmark size={20} /> MANDATE<span>WATCH</span></div>
+        <div className="mw-wordmark"><img src={logo} alt="MandateWatch" className="mw-wordmark-logo" /></div>
         <div className="mw-ticker">
           <span><b>{repsData.filter((r) => PHASE1_CHAMBERS.includes(r.chamber)).length}</b> officials tracked</span>
           <span><b>{demandsList.length}</b> demands filed</span>
@@ -2828,7 +2827,7 @@ export default function MandateWatch() {
           </div>
           <div className="mw-hero-copy-col">
             <p className="mw-hero-lead">They asked for your vote. Now they answer to it.</p>
-            <p className="mw-hero-sub">Track approval ratings, constituency projects, citizen demands, and election sentiment for every elected representative in Nigeria — all in one place.</p>
+            <p className="mw-hero-sub">Track approval ratings, projects, citizen demands, and election sentiment for every elected official in Nigeria — all in one place.</p>
           </div>
         </div>
       </div>

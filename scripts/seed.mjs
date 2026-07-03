@@ -15,12 +15,14 @@ import { REGIONS, LGAS_BY_STATE, SEN_DISTRICTS, FED_CONSTITUENCIES, STATE_CONSTI
 import { PARTY_COLORS } from "../src/data/parties.js";
 import { REPS } from "../src/data/reps.js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
+// Accept either SUPABASE_URL or VITE_SUPABASE_URL -- the URL isn't sensitive (it's already
+// public via the VITE_ prefix exposed to the browser), so no need to make the user set it twice.
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error(
-    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.\n" +
+    "Missing SUPABASE_URL (or VITE_SUPABASE_URL) or SUPABASE_SERVICE_ROLE_KEY.\n" +
     "Run with: node --env-file=.env.local scripts/seed.mjs\n" +
     "(and make sure both are set in .env.local — see .env.example)"
   );

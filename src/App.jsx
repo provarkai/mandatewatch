@@ -1319,13 +1319,26 @@ function AuthModal({ open, onClose, onComplete, pendingAuthUser }) {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setError("Enter a valid email address"); return; }
     setError("");
     setBusy(true);
-    const { error: sendError } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: { emailRedirectTo: window.location.origin },
-    });
-    setBusy(false);
-    if (sendError) { setError(sendError.message); return; }
-    setStep("sent");
+    const redirectTo = window.location.origin;
+    // Temporary diagnostic logging — remove once the header-encoding error is root-caused.
+    console.log("[AuthModal] signInWithOtp call:", { email: email.trim(), redirectTo, supabaseUrl: supabase.supabaseUrl, keyLength: supabase.supabaseKey?.length });
+    try {
+      const { error: sendError } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: redirectTo },
+      });
+      setBusy(false);
+      if (sendError) {
+        console.error("[AuthModal] signInWithOtp returned error:", sendError, JSON.stringify(sendError));
+        setError(sendError.message);
+        return;
+      }
+      setStep("sent");
+    } catch (thrown) {
+      setBusy(false);
+      console.error("[AuthModal] signInWithOtp threw:", thrown, thrown?.stack);
+      setError(thrown?.message || String(thrown));
+    }
   }
 
   async function finish() {

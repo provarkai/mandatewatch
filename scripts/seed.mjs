@@ -49,13 +49,47 @@ function must(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-async function insertBatch(table, rows, conflictTarget) {
-  if (rows.length === 0) return;
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function chunk(array, size) {
+  const out = [];
+  for (let i = 0; i < array.length; i += size) out.push(array.slice(i, i + size));
+  return out;
+}
+
+// Retries on transient network failures (e.g. "TypeError: fetch failed"), not on real
+// database errors (bad data, constraint violations) -- those fail immediately, since retrying
+// won't fix them and would just hide the actual problem.
+async function upsertWithRetry(table, rows, conflictTarget, attempt = 1) {
   const { error } = await supabase
     .from(table)
     .upsert(rows, { onConflict: conflictTarget, ignoreDuplicates: true });
-  if (error) throw new Error(`${table}: ${error.message}`);
-  console.log(`  ${table}: ${rows.length} rows`);
+  if (!error) return;
+
+  const isNetworkError = /fetch failed|ECONNRESET|ETIMEDOUT|network/i.test(error.message);
+  if (isNetworkError && attempt < 4) {
+    const delayMs = attempt * 1500;
+    console.warn(`  ${table}: network hiccup (${error.message}), retrying in ${delayMs}ms (attempt ${attempt + 1}/4)...`);
+    await sleep(delayMs);
+    return upsertWithRetry(table, rows, conflictTarget, attempt + 1);
+  }
+  throw new Error(`${table}: ${error.message}`);
+}
+
+// Inserts in chunks of 100 rather than one giant request -- smaller requests are less likely
+// to hit a transient failure, and if one chunk does fail (after retries), only that chunk needs
+// re-running, not the whole table (re-running the script is still fully safe either way, since
+// every insert is an idempotent upsert).
+async function insertBatch(table, rows, conflictTarget) {
+  if (rows.length === 0) return;
+  const chunks = chunk(rows, 100);
+  for (const [i, part] of chunks.entries()) {
+    await upsertWithRetry(table, part, conflictTarget);
+    if (chunks.length > 1) console.log(`  ${table}: chunk ${i + 1}/${chunks.length} (${part.length} rows)`);
+  }
+  console.log(`  ${table}: ${rows.length} rows total`);
 }
 
 async function main() {

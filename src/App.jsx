@@ -54,24 +54,6 @@ const DEMAND_STATUS_STAMP = {
   delivered: "stamp-navy",
 };
 
-const THREADS = [
-  { id: 1, repId: 423, issueTag: null, title: "Anyone else noticing more building-safety enforcement in Lagos lately?", body: "Two markets got a 14-day ultimatum this week over structural integrity. Feels like the state is finally taking distressed buildings seriously after the collapses last year. Curious if other LGAs are seeing the same push or if it's just Ajeromi-Ifelodun for now.", author: "T.A.", score: 41, createdAt: "2026-07-01" },
-  { id: 2, repId: null, issueTag: "Building Safety", title: "How many more collapses before enforcement becomes routine, not reactive?", body: "Lagos just flagged another set of distressed buildings that were marked unsafe back in January but stayed open for months anyway. This pattern isn't unique to one state. Would like to hear what enforcement actually looks like where you are.", author: "K.J.", score: 67, createdAt: "2026-07-02" },
-  { id: 3, repId: 413, issueTag: null, title: "₦1.62 trillion Enugu budget — where's the rural roads breakdown?", body: "The 'Budget of Renewed Momentum' sounds good on paper and the urban road numbers (1,022 roads!) are real. But I haven't seen a clear breakdown for LGAs like Awgu that are still waiting on basic connectivity. Anyone found the full document?", author: "C.O.", score: 38, createdAt: "2026-06-28" },
-  { id: 4, repId: 418, issueTag: null, title: "Water supply is genuinely improving in parts of Kano", body: "Wanted to share something positive for once — water pressure in our area has been noticeably better since the treatment plant work started. Not perfect yet but a real change from eighteen months ago.", author: "A.S.", score: 29, createdAt: "2026-05-15" },
-  { id: 5, repId: null, issueTag: "Cost of Living", title: "Cooking gas prices are still climbing — is anyone tracking this by state?", body: "5kg cylinders averaging over ₦5,400 nationally now, higher in some northern states. Feels like this gets mentioned once and then drops off the radar. Would be useful to track which states are actually doing something about distribution costs.", author: "M.I.", score: 52, createdAt: "2026-06-20" },
-  { id: 6, repId: 400, issueTag: null, title: "Finally some real movement on the Abia pension arrears", body: "Twenty-plus years owed to some of these retirees and there's finally a public pledge to clear it. Cautiously optimistic — following up here as it develops since promises on this specific issue have fallen through before.", author: "N.E.", score: 44, createdAt: "2026-06-29" },
-];
-
-const COMMENTS = [
-  { id: 1, threadId: 1, parentId: null, author: "B.N.", body: "Same pattern near Coker Market — buildings marked unsafe back in January, nothing happened until this week's ultimatum.", score: 12, createdAt: "2026-07-01" },
-  { id: 2, threadId: 1, parentId: 1, author: "T.A.", body: "Exactly — the marking-vs-enforcement gap is the real story here, not just the ultimatum itself.", score: 5, createdAt: "2026-07-01" },
-  { id: 3, threadId: 2, parentId: null, author: "F.O.", body: "Would genuinely support a national minimum-standard requirement instead of every state handling this differently after the fact.", score: 20, createdAt: "2026-07-02" },
-  { id: 4, threadId: 5, parentId: null, author: "D.E.", body: "Jigawa was flagged as the most expensive for 5kg cylinders, Bayelsa the cheapest — the regional gap is wild for something this basic.", score: 15, createdAt: "2026-06-21" },
-  { id: 5, threadId: 5, parentId: 4, author: "M.I.", body: "That's exactly the kind of state-by-state tracking this platform should make easy to see at a glance.", score: 9, createdAt: "2026-06-21" },
-  { id: 6, threadId: 3, parentId: null, author: "S.U.", body: "The urban road number is impressive but I'd want to see the LGA-level split before calling it 'renewed momentum' everywhere.", score: 14, createdAt: "2026-06-28" },
-];
-
 // Stewardship entries — reps (once claimed) post what they've delivered; citizens verify the claim.
 // Starts empty like demands/threads — this is a real accountability record, not seeded content.
 const STEWARDSHIP = [];
@@ -1597,8 +1579,8 @@ export default function MandateWatch() {
   }, [needsProfile]);
   const [authOpen, setAuthOpen] = useState(false);
 
-  const [threadsList, setThreadsList] = useState(THREADS);
-  const [commentsList, setCommentsList] = useState(COMMENTS);
+  const [threadsList, setThreadsList] = useState([]);
+  const [commentsList, setCommentsList] = useState([]);
   const [threadVotes, setThreadVotes] = useState({});
   const [commentVotes, setCommentVotes] = useState({});
   const [openThreadId, setOpenThreadId] = useState(null);
@@ -1609,48 +1591,100 @@ export default function MandateWatch() {
   const [threadQuery, setThreadQuery] = useState("");
   const [threadRepFilter, setThreadRepFilter] = useState(null);
 
-  function handleVoteThread(threadId, dir) {
+  async function handleVoteThread(threadId, dir) {
+    if (!user) { setAuthOpen(true); return; }
     if (threadVotes[threadId]) return;
+
+    // Optimistic local update first — the unique constraint on (thread_id, user_id) is the real
+    // enforcement point; this is just responsive UI, corrected below if the insert fails.
     setThreadVotes((prev) => ({ ...prev, [threadId]: dir }));
     setThreadsList((list) => list.map((t) => (t.id === threadId ? { ...t, score: t.score + (dir === "up" ? 1 : -1) } : t)));
+
+    const { error } = await supabase.from("thread_votes").insert({ thread_id: threadId, user_id: user.id, direction: dir });
+    if (error) {
+      // Most likely a duplicate vote from another tab/device — revert the optimistic update
+      // rather than leave the UI showing a vote that wasn't actually recorded.
+      setThreadVotes((prev) => { const next = { ...prev }; delete next[threadId]; return next; });
+      setThreadsList((list) => list.map((t) => (t.id === threadId ? { ...t, score: t.score - (dir === "up" ? 1 : -1) } : t)));
+    }
   }
 
-  function handleVoteComment(commentId, dir) {
+  async function handleVoteComment(commentId, dir) {
+    if (!user) { setAuthOpen(true); return; }
     if (commentVotes[commentId]) return;
+
     setCommentVotes((prev) => ({ ...prev, [commentId]: dir }));
     setCommentsList((list) => list.map((c) => (c.id === commentId ? { ...c, score: c.score + (dir === "up" ? 1 : -1) } : c)));
+
+    const { error } = await supabase.from("comment_votes").insert({ comment_id: commentId, user_id: user.id, direction: dir });
+    if (error) {
+      setCommentVotes((prev) => { const next = { ...prev }; delete next[commentId]; return next; });
+      setCommentsList((list) => list.map((c) => (c.id === commentId ? { ...c, score: c.score - (dir === "up" ? 1 : -1) } : c)));
+    }
   }
 
-  function handleAddComment({ threadId, parentId, body, isOfficial }) {
-    const thread = threadsList.find((t) => t.id === threadId);
-    const rep = thread && thread.repId ? repById[thread.repId] : null;
-    const newComment = {
-      id: Date.now(),
-      threadId,
-      parentId,
-      author: isOfficial && rep ? rep.name : user ? user.name : "You",
-      body,
-      score: 1,
-      isOfficial: !!isOfficial,
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-    setCommentsList((prev) => [...prev, newComment]);
-    setCommentVotes((prev) => ({ ...prev, [newComment.id]: "up" }));
+  async function handleAddComment({ threadId, parentId, body }) {
+    if (!user) { setAuthOpen(true); return; }
+
+    // is_official is intentionally never sent here — real rep verification doesn't exist yet, and
+    // the RLS insert policy on `comments` forces is_official = false regardless. Posting via the
+    // demo "Claim & Verify This Profile" button no longer produces a badge that survives a reload.
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({ thread_id: threadId, parent_id: parentId, user_id: user.id, author_name: user.name })
+      .select()
+      .single();
+    if (error || !data) return;
+
+    setCommentsList((prev) => [
+      ...prev,
+      {
+        id: data.id,
+        threadId: data.thread_id,
+        parentId: data.parent_id,
+        userId: data.user_id,
+        author: data.author_name,
+        body: data.body,
+        score: data.score, // starts at 1 — the seed_comment_self_vote() trigger already ran
+        isOfficial: data.is_official,
+        createdAt: data.created_at.slice(0, 10),
+      },
+    ]);
+    setCommentVotes((prev) => ({ ...prev, [data.id]: "up" }));
   }
 
-  function handleStartThread({ title, body, repId, issueTag }) {
-    const newThread = {
-      id: Date.now(),
-      repId: repId || null,
-      issueTag: repId ? null : issueTag,
-      title,
-      body,
-      author: user ? user.name : "You",
-      score: 1,
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
-    setThreadsList((prev) => [newThread, ...prev]);
-    setThreadVotes((prev) => ({ ...prev, [newThread.id]: "up" }));
+  async function handleStartThread({ title, body, repId, issueTag }) {
+    if (!user) { setAuthOpen(true); return; }
+
+    const { data, error } = await supabase
+      .from("threads")
+      .insert({
+        rep_id: repId || null,
+        issue_tag: repId ? null : issueTag,
+        title,
+        body,
+        user_id: user.id,
+        author_name: user.name,
+      })
+      .select()
+      .single();
+    if (error || !data) return;
+
+    setThreadsList((prev) => [
+      {
+        id: data.id,
+        repId: data.rep_id,
+        issueTag: data.issue_tag,
+        title: data.title,
+        body: data.body,
+        userId: data.user_id,
+        author: data.author_name,
+        score: data.score, // starts at 1 — the seed_thread_self_vote() trigger already ran
+        createdAt: data.created_at.slice(0, 10),
+      },
+      ...prev,
+    ]);
+    setThreadVotes((prev) => ({ ...prev, [data.id]: "up" }));
   }
 
   const repById = useMemo(() => Object.fromEntries(repsData.map((r) => [r.id, r])), [repsData]);
@@ -1758,6 +1792,76 @@ export default function MandateWatch() {
       .then(({ data, error }) => {
         if (error || !data || cancelled) return;
         setUpvotedIds(data.map((row) => row.demand_id));
+      });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Live threads + comments from Supabase, replacing the bundled THREADS/COMMENTS mock data.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("threads")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setThreadsList(
+          data.map((row) => ({
+            id: row.id,
+            repId: row.rep_id,
+            issueTag: row.issue_tag,
+            title: row.title,
+            body: row.body,
+            userId: row.user_id,
+            author: row.author_name,
+            score: row.score,
+            createdAt: row.created_at.slice(0, 10),
+          }))
+        );
+      });
+    supabase
+      .from("comments")
+      .select("*")
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setCommentsList(
+          data.map((row) => ({
+            id: row.id,
+            threadId: row.thread_id,
+            parentId: row.parent_id,
+            userId: row.user_id,
+            author: row.author_name,
+            body: row.body,
+            score: row.score,
+            isOfficial: row.is_official,
+            createdAt: row.created_at.slice(0, 10),
+          }))
+        );
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hydrate which threads/comments the signed-in user has already voted on, so buttons still show
+  // "already voted" after a reload — not just within the current session.
+  useEffect(() => {
+    if (!user) { setThreadVotes({}); setCommentVotes({}); return; }
+    let cancelled = false;
+    supabase
+      .from("thread_votes")
+      .select("thread_id, direction")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setThreadVotes(Object.fromEntries(data.map((v) => [v.thread_id, v.direction])));
+      });
+    supabase
+      .from("comment_votes")
+      .select("comment_id, direction")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setCommentVotes(Object.fromEntries(data.map((v) => [v.comment_id, v.direction])));
       });
     return () => { cancelled = true; };
   }, [user]);
@@ -2729,7 +2833,7 @@ export default function MandateWatch() {
                 </button>
               </div>
             )}
-            <button className="mw-btn mw-btn-primary mw-file-btn" onClick={() => setNewThreadOpen(true)}><Plus size={14} /> Start a discussion</button>
+            <button className="mw-btn mw-btn-primary mw-file-btn" onClick={() => (user ? setNewThreadOpen(true) : setAuthOpen(true))}><Plus size={14} /> Start a discussion</button>
           </div>
 
           <div className="mw-demand-list">
@@ -2816,7 +2920,7 @@ export default function MandateWatch() {
           onBack={() => setUserProfileOpen(false)}
           onSignOut={() => { signOut(); setUserProfileOpen(false); }}
           myDemands={demandsList.filter((d) => d.submittedBy === user.name)}
-          myComments={commentsList.filter((c) => c.author === user.name)}
+          myComments={commentsList.filter((c) => c.userId === user.id)}
           myVotedReps={Object.entries(repVotes).map(([repId, votes]) => ({ repId: Number(repId), votes }))}
           repById={repById}
         />

@@ -9,6 +9,7 @@ import {
 } from "./data/geography";
 import { supabase } from "./lib/supabaseClient";
 import { useAuth } from "./hooks/useAuth";
+import { usePlatform } from "./platform/usePlatform";
 
 /* ---------------------------------------------------------------
    SAMPLE DATA — illustrative only, fictional names, not real people
@@ -346,6 +347,7 @@ function PulseVote({ label, question, value, tone, voted, onVote, upLabel, downL
 }
 
 function RepProfilePage({ rep, onBack, onFileDemand, onStateClick, onViewDiscussion, onViewStewardship, voteState, onVote, isClaimed, isOwner, isActingAsRep, claimStatus, onClaim, onResumeView, onExitView, repDemands, onAcknowledgeDemand, repThreads, commentsList }) {
+  const platform = usePlatform();
   if (!rep) return null;
   const initials = rep.name.replace(/^(Sen\.|Rep\.|Gov\.|Hon\.)\s/, "").split(" ").map(w => w[0]).join("").slice(0, 2);
   const v = voteState || {};
@@ -488,7 +490,7 @@ function RepProfilePage({ rep, onBack, onFileDemand, onStateClick, onViewDiscuss
         </div>
 
         <div className="mw-modal-actions" style={{ marginBottom: 10 }}>
-          <button className="mw-btn mw-btn-ghost" style={{ flex: 1 }} onClick={() => onFileDemand(rep.id)}>File a demand</button>
+          <button className="mw-btn mw-btn-ghost" style={{ flex: 1 }} onClick={() => onFileDemand(rep.id)}>{platform.cta.fileADemand}</button>
           <button className="mw-btn mw-btn-ghost" style={{ flex: 1 }} onClick={() => onViewDiscussion(rep.id)}>View all discussion</button>
         </div>
 
@@ -1631,6 +1633,7 @@ function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user }) {
 --------------------------------------------------------------- */
 
 export default function MandateWatch() {
+  const platform = usePlatform();
   const [tab, setTab] = useState("reps");
   const [electionModeEnabled, setElectionModeEnabled] = useState(false);
   const [query, setQuery] = useState("");
@@ -2274,16 +2277,16 @@ export default function MandateWatch() {
         @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');
 
         .mw-root {
-          --ink: #1B2A3A;
-          --ink-soft: #4A5A66;
-          --verdant: #1F5E3F;
-          --verdant-dark: #143D29;
-          --brass: #A9791F;
-          --brass-soft: #D9B45C;
-          --rust: #A6432E;
-          --paper: #EEF0E6;
-          --paper-card: #F7F8F2;
-          --line: #CBCFC0;
+          --ink: ${platform.designTokens.colors.ink};
+          --ink-soft: ${platform.designTokens.colors.inkSoft};
+          --verdant: ${platform.designTokens.colors.verdant};
+          --verdant-dark: ${platform.designTokens.colors.verdantDark};
+          --brass: ${platform.designTokens.colors.brass};
+          --brass-soft: ${platform.designTokens.colors.brassSoft};
+          --rust: ${platform.designTokens.colors.rust};
+          --paper: ${platform.designTokens.colors.paper};
+          --paper-card: ${platform.designTokens.colors.paperCard};
+          --line: ${platform.designTokens.colors.line};
           font-family: 'Inter', sans-serif;
           background: var(--paper);
           color: var(--ink);
@@ -2752,6 +2755,11 @@ export default function MandateWatch() {
           letter-spacing: 0.03em; cursor: pointer; flex-shrink: 0; white-space: nowrap;
         }
         .mw-footer-admin-link:hover { border-color: var(--ink-soft); color: var(--ink); }
+        .mw-footer-columns { display: flex; gap: 28px; margin-top: 14px; flex-wrap: wrap; }
+        .mw-footer-column { display: flex; flex-direction: column; gap: 4px; }
+        .mw-footer-column-title { color: var(--ink); text-transform: uppercase; letter-spacing: 0.04em; font-size: 10.5px; margin-bottom: 2px; }
+        .mw-footer-link { background: none; border: none; padding: 0; color: var(--ink-soft); font-family: 'IBM Plex Mono'; font-size: 11px; text-align: left; cursor: pointer; width: fit-content; }
+        .mw-footer-link:hover { color: var(--ink); text-decoration: underline; }
 
         @media (max-width: 640px) {
           .mw-hero { padding: 24px 18px 20px; }
@@ -2809,10 +2817,10 @@ export default function MandateWatch() {
               <CheckCircle2 size={13} />
               <span>{user.name} · {user.lga} LGA, {user.state}</span>
             </button>
-            <button className="mw-link-btn" onClick={() => signOut()}>Sign out</button>
+            <button className="mw-link-btn" onClick={() => signOut()}>{platform.cta.signOut}</button>
           </div>
         ) : (
-          <button className="mw-btn mw-btn-primary mw-auth-btn" onClick={() => setAuthOpen(true)}>Sign up / Sign in</button>
+          <button className="mw-btn mw-btn-primary mw-auth-btn" onClick={() => setAuthOpen(true)}>{platform.cta.signInSignUp}</button>
         )}
       </header>
 
@@ -2828,16 +2836,41 @@ export default function MandateWatch() {
       <div className="mw-hero">
         <div className="mw-hero-split-text">
           <div className="mw-hero-headline-col">
-            <h1>Every Mandate,<br />Tracked.<br />Every Voice,<br />Heard.</h1>
+            <h1>
+              {platform.brand.brandPromise.split(". ").map((clause, i, arr) => (
+                <React.Fragment key={i}>
+                  {clause.replace(/\.\s*$/, "")}.
+                  {i < arr.length - 1 && <br />}
+                </React.Fragment>
+              ))}
+            </h1>
           </div>
           <div className="mw-hero-copy-col">
-            <p className="mw-hero-lead">They asked for your vote. Now they answer to it.</p>
-            <p className="mw-hero-sub">Track approval ratings, projects, citizen demands, and election sentiment for every elected official in Nigeria — all in one place.</p>
+            <p className="mw-hero-lead">{platform.brand.mission}</p>
+            <p className="mw-hero-sub">{platform.marketPosition}</p>
           </div>
         </div>
       </div>
 
       <div className="mw-hero-split">
+        <div className="mw-mandate-col" ref={mandateColRef}>
+          <h3 className="mw-mandate-heading">Next Mandate</h3>
+          <CountdownTimer label="Presidential/National Assembly Election" date="2027-01-16T08:00:00" />
+          <CountdownTimer label="Governorship/State House Of Assembly Election" date="2027-02-06T08:00:00" />
+          <VotePoll />
+        </div>
+      </div>
+
+      <div className="mw-tabs" ref={repsGridRef}>
+        {platform.navigation.map((item) => (
+          <button key={item.key} className={`mw-tab ${tab === item.tab ? "active" : ""}`} onClick={() => setTab(item.tab)}>{item.label}</button>
+        ))}
+        {electionModeEnabled && (
+          <button className={`mw-tab ${tab === "election" ? "active" : ""}`} onClick={() => setTab("election")}>Election Watch</button>
+        )}
+      </div>
+
+      {tab === "pulsemap" && (
         <div className="mw-hero-map-section">
           <div className="mw-hero-map-label">
             {mapSelectedState ? <b>{mapSelectedState}</b> : mapHoveredState ? <b>{mapHoveredState}</b> : "Tap a state"}
@@ -2857,23 +2890,7 @@ export default function MandateWatch() {
             selectedState={mapSelectedState}
           />
         </div>
-
-        <div className="mw-mandate-col" ref={mandateColRef}>
-          <h3 className="mw-mandate-heading">Next Mandate</h3>
-          <CountdownTimer label="Presidential/National Assembly Election" date="2027-01-16T08:00:00" />
-          <CountdownTimer label="Governorship/State House Of Assembly Election" date="2027-02-06T08:00:00" />
-          <VotePoll />
-        </div>
-      </div>
-
-      <div className="mw-tabs" ref={repsGridRef}>
-        <button className={`mw-tab ${tab === "reps" ? "active" : ""}`} onClick={() => setTab("reps")}>Representatives</button>
-        {electionModeEnabled && (
-          <button className={`mw-tab ${tab === "election" ? "active" : ""}`} onClick={() => setTab("election")}>Election Watch</button>
-        )}
-        <button className={`mw-tab ${tab === "demands" ? "active" : ""}`} onClick={() => setTab("demands")}>Demands Board</button>
-        <button className={`mw-tab ${tab === "discussion" ? "active" : ""}`} onClick={() => setTab("discussion")}>Discussion</button>
-      </div>
+      )}
 
       {tab === "reps" && (
         <>
@@ -2998,7 +3015,7 @@ export default function MandateWatch() {
               <button className={`mw-chip ${demandSort === "top" ? "active" : ""}`} onClick={() => setDemandSort("top")}>Most demanded</button>
               <button className={`mw-chip ${demandSort === "new" ? "active" : ""}`} onClick={() => setDemandSort("new")}>Newest</button>
             </div>
-            <button className="mw-btn mw-btn-primary mw-file-btn" onClick={() => openSubmitForRep(null)}><Plus size={14} /> File a demand</button>
+            <button className="mw-btn mw-btn-primary mw-file-btn" onClick={() => openSubmitForRep(null)}><Plus size={14} /> {platform.cta.fileADemand}</button>
           </div>
 
           <div className="mw-demand-list">
@@ -3028,7 +3045,7 @@ export default function MandateWatch() {
                 </button>
               </div>
             )}
-            <button className="mw-btn mw-btn-primary mw-file-btn" onClick={() => (user ? setNewThreadOpen(true) : setAuthOpen(true))}><Plus size={14} /> Start a discussion</button>
+            <button className="mw-btn mw-btn-primary mw-file-btn" onClick={() => (user ? setNewThreadOpen(true) : setAuthOpen(true))}><Plus size={14} /> {platform.cta.startADiscussion}</button>
           </div>
 
           <div className="mw-demand-list">
@@ -3168,7 +3185,19 @@ export default function MandateWatch() {
 
       <footer className="mw-footer">
         <div>
-          MANDATEWATCH — prototype build. Representative names, parties, and constituencies are real, sourced from nass.gov.ng and Wikipedia's Nigeria Governors' Forum page. Approval, felt-presence, and demand data are generated by platform users, not scraped. Directory coverage is partial — see project notes for gaps. <ArrowUpRight size={11} style={{ display: "inline", verticalAlign: "middle" }} />
+          <div>
+            {platform.footer.disclaimer} <ArrowUpRight size={11} style={{ display: "inline", verticalAlign: "middle" }} />
+          </div>
+          <div className="mw-footer-columns">
+            {platform.footer.columns.filter((col) => col.links.length > 0).map((col) => (
+              <div key={col.title} className="mw-footer-column">
+                <div className="mw-footer-column-title">{col.title}</div>
+                {col.links.map((link) => (
+                  <button key={link.label} className="mw-footer-link" onClick={() => link.tab && setTab(link.tab)}>{link.label}</button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
         {isAdmin && (
           <button

@@ -87,7 +87,25 @@ surfaces during a defined election period, gated by **Election Mode** (see below
    real `representatives.claimed_by`) + real Acknowledge/Mark Delivered on demands
    (`acknowledge_demand` RPC).
 
+5. Election Mode gating (`app_settings.election_mode_enabled`, admin-toggleable, hides/shows the
+   Election Watch tab site-wide).
+6. **Platform Architecture Layer** (`src/platform/` — TypeScript, the only TS in the app; everything
+   else stays plain JS per an explicit decision). `PlatformProvider`/`usePlatform()` centralize
+   brand copy, navigation, footer, CTA labels, SEO metadata, feature flags, markets/rollout, and
+   design tokens. Wired into the live UI: header CTA, hero copy, nav tabs (now driven by
+   `platform.navigation`), footer, and the `<style>` block's color `:root` all source from it.
+   `NigeriaMap` was promoted from an always-visible hero widget into its own `"pulsemap"` tab
+   (PulseMap™) as part of this. Election Mode's flag is deliberately **not** duplicated into the
+   static `FEATURE_FLAGS` config — it already has a real, live, DB-backed source of truth (item 5);
+   see `src/platform/types.ts` for the reasoning. `index.html`'s SEO tags are kept in sync by hand
+   with `src/platform/platform.config.ts`'s `SEO` export (no SSR/templating exists to automate this
+   in a router-less Vite SPA).
+
 ## Still open
-- Election Mode (gating Election Watch/Aspirants to a real election period — in progress).
 - Stewardship (claimed rep posts what they've delivered, citizens verify) — still local-only.
 - Election Watch / Aspirants real data — still fully mock (`ASPIRANTS = []`).
+- Footer's Resources/Company/Support/Legal columns are intentionally empty (no real pages/routes
+  exist yet in this SPA) — populate once those destinations are real, not with placeholder links.
+- Insights, Pulse Reports/Rankings/Index, Open Civic API, Research Centre, Developer Platform,
+  Analytics Suite are registered in `src/platform/platform.config.ts`'s `PRODUCTS` as `unreleased`
+  — metadata only, nothing built.

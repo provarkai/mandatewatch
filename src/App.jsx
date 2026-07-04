@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
 import { Search, MapPin, ChevronRight, ThumbsUp, ThumbsDown, Plus, X, TrendingUp, Users, CheckCircle2, ArrowUpRight, MessageSquare, CornerDownRight, Paperclip } from "lucide-react";
 import logo from "./assets/logo.png";
 import { REPS } from "./data/reps";
@@ -10,6 +10,11 @@ import {
 import { supabase } from "./lib/supabaseClient";
 import { useAuth } from "./hooks/useAuth";
 import { usePlatform } from "./platform/usePlatform";
+
+// Lazy-loaded: keeps the ~800 lines of homepage storytelling sections out of the main bundle
+// until they're actually needed, and splits it into its own chunk (see the existing >500kB build
+// warning this addresses).
+const HomepageStory = lazy(() => import("./components/home/HomepageStory.jsx"));
 
 /* ---------------------------------------------------------------
    SAMPLE DATA — illustrative only, fictional names, not real people
@@ -1777,6 +1782,7 @@ export default function MandateWatch() {
   }
 
   const repById = useMemo(() => Object.fromEntries(repsData.map((r) => [r.id, r])), [repsData]);
+  const phase1Reps = useMemo(() => repsData.filter((r) => PHASE1_CHAMBERS.includes(r.chamber)), [repsData]);
   const openRep = openRepId ? repById[openRepId] : null;
   const ownsRep = (repId) => !!user && repById[repId]?.claimedBy === user.id;
   const localRepById = useMemo(() => Object.fromEntries(REPS.map((r) => [r.id, r])), []);
@@ -2807,7 +2813,7 @@ export default function MandateWatch() {
       <header className="mw-header">
         <div className="mw-wordmark"><img src={logo} alt="MandateWatch" className="mw-wordmark-logo" /></div>
         <div className="mw-ticker">
-          <span><b>{repsData.filter((r) => PHASE1_CHAMBERS.includes(r.chamber)).length}</b> officials tracked</span>
+          <span><b>{phase1Reps.length}</b> officials tracked</span>
           <span><b>{demandsList.length}</b> demands filed</span>
           <span><b>{aspirantsList.length}</b> aspirants watched</span>
         </div>
@@ -2852,14 +2858,28 @@ export default function MandateWatch() {
         </div>
       </div>
 
-      <div className="mw-hero-split">
-        <div className="mw-mandate-col" ref={mandateColRef}>
-          <h3 className="mw-mandate-heading">Next Mandate</h3>
-          <CountdownTimer label="Presidential/National Assembly Election" date="2027-01-16T08:00:00" />
-          <CountdownTimer label="Governorship/State House Of Assembly Election" date="2027-02-06T08:00:00" />
-          <VotePoll />
+      <Suspense fallback={<div style={{ minHeight: 800 }} />}>
+        <HomepageStory
+          phase1Reps={phase1Reps}
+          demandsList={demandsList}
+          threadsList={threadsList}
+          repById={repById}
+          user={user}
+          onNavigate={(t) => { setTab(t); setTimeout(() => repsGridRef.current && repsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+          onSignIn={() => setAuthOpen(true)}
+        />
+      </Suspense>
+
+      {electionModeEnabled && (
+        <div className="mw-hero-split">
+          <div className="mw-mandate-col" ref={mandateColRef}>
+            <h3 className="mw-mandate-heading">Next Mandate</h3>
+            <CountdownTimer label="Presidential/National Assembly Election" date="2027-01-16T08:00:00" />
+            <CountdownTimer label="Governorship/State House Of Assembly Election" date="2027-02-06T08:00:00" />
+            <VotePoll />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="mw-tabs" ref={repsGridRef}>
         {platform.navigation.map((item) => (
@@ -2876,7 +2896,7 @@ export default function MandateWatch() {
             {mapSelectedState ? <b>{mapSelectedState}</b> : mapHoveredState ? <b>{mapHoveredState}</b> : "Tap a state"}
           </div>
           <NigeriaMap
-            repsData={repsData.filter((r) => PHASE1_CHAMBERS.includes(r.chamber))}
+            repsData={phase1Reps}
             onSelectState={(s) => {
               setMapSelectedState(s);
               setStateFilter(s);

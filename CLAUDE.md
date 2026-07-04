@@ -100,6 +100,16 @@ surfaces during a defined election period, gated by **Election Mode** (see below
    see `src/platform/types.ts` for the reasoning. `index.html`'s SEO tags are kept in sync by hand
    with `src/platform/platform.config.ts`'s `SEO` export (no SSR/templating exists to automate this
    in a router-less Vite SPA).
+7. **Homepage storytelling** (`src/components/home/` — plain JS/JSX, twelve components composed by
+   `HomepageStory.jsx`, lazy-loaded from `App.jsx` via `React.lazy`/`Suspense` as its own chunk).
+   Ten sections between the existing Hero and the app tabs (comparison cards, mission timeline,
+   live data preview, how-it-works, audience cards, methodology, trust grid, insights preview,
+   public beta, final CTA) plus a short transition strip into the tabs. `LivePreview` and
+   `InsightsPreview` pull real numbers from `repsData`/`demandsList`/`threadsList` already in memory
+   — no fabricated content; Insights' "Read Insight" and Methodology's "Learn More" buttons are
+   visibly disabled ("Coming soon"), not dead links, since neither feature is built yet. The
+   election countdown/"Will you vote?" widget (`CountdownTimer`/`VotePoll`) moved from always-
+   visible to `{electionModeEnabled && (...)}` — same flag as item 5, not a new mechanism.
 
 ## Still open
 - Stewardship (claimed rep posts what they've delivered, citizens verify) — still local-only.

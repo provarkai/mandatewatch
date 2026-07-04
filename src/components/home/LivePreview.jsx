@@ -27,7 +27,7 @@ export function LivePreview({ phase1Reps, demandsList, threadsList, repById, onN
     >
       <div className="hs-preview-grid">
         {topRep && (
-          <button className="hs-preview-card" onClick={() => onNavigate("reps")}>
+          <button className="hs-preview-card" onClick={() => onNavigate("/")}>
             <div className="hs-preview-card-label"><Users size={14} /> Top approval rating</div>
             <div className="hs-preview-card-title">{topRep.name}</div>
             <div className="hs-preview-card-meta"><MapPin size={11} /> {topRep.constituency}, {topRep.state}</div>
@@ -35,7 +35,7 @@ export function LivePreview({ phase1Reps, demandsList, threadsList, repById, onN
           </button>
         )}
 
-        <button className="hs-preview-card" onClick={() => onNavigate("pulsemap")}>
+        <button className="hs-preview-card" onClick={() => onNavigate("/pulsemap")}>
           <div className="hs-preview-card-label"><MapPin size={14} /> PulseMap™</div>
           <div className="hs-preview-card-title">Explore governance by state</div>
           <div className="hs-preview-card-meta">Tap any state to see who represents it</div>
@@ -43,7 +43,7 @@ export function LivePreview({ phase1Reps, demandsList, threadsList, repById, onN
         </button>
 
         {latestDemand && (
-          <button className="hs-preview-card" onClick={() => onNavigate("demands")}>
+          <button className="hs-preview-card" onClick={() => onNavigate("/demands")}>
             <div className="hs-preview-card-label">Latest demand</div>
             <div className="hs-preview-card-title">{latestDemand.title}</div>
             <div className="hs-preview-card-meta">{latestDemandRep ? latestDemandRep.name : "Representative"} · {latestDemand.upvotes} upvotes</div>
@@ -51,7 +51,7 @@ export function LivePreview({ phase1Reps, demandsList, threadsList, repById, onN
         )}
 
         {trendingThread && (
-          <button className="hs-preview-card" onClick={() => onNavigate("discussion")}>
+          <button className="hs-preview-card" onClick={() => onNavigate("/discussion")}>
             <div className="hs-preview-card-label"><MessageSquare size={14} /> Trending discussion</div>
             <div className="hs-preview-card-title">{trendingThread.title}</div>
             <div className="hs-preview-card-meta">Started by {trendingThread.author}</div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Search, MapPin, ChevronRight, ThumbsUp, ThumbsDown, Plus, X, TrendingUp, Users, CheckCircle2, ArrowUpRight, MessageSquare, CornerDownRight, Paperclip } from "lucide-react";
 import logo from "./assets/logo.png";
 import { REPS } from "./data/reps";
@@ -31,6 +32,17 @@ const CHAMBER_INFO = {
   "State Assembly": { label: "Member, State House of Assembly", level: "State Level" },
 };
 const PHASE1_CHAMBERS = Object.keys(CHAMBER_INFO);
+
+// Routing shims -- map the small set of logical "tab" keys used throughout this file to real
+// URL paths, so every existing `tab === "x"` / `setTab("x")` call site keeps working unchanged
+// while the actual navigation state now lives in the URL (see MandateWatch for the derived
+// tab/setTab/openRepId/etc. values built from these).
+const TAB_PATHS = { reps: "/", pulsemap: "/pulsemap", demands: "/demands", discussion: "/discussion", election: "/election", admin: "/admin" };
+const PATH_TABS = Object.fromEntries(Object.entries(TAB_PATHS).map(([key, path]) => [path, key]));
+function tabFromPath(pathname) {
+  if (pathname.startsWith("/representatives/")) return "reps";
+  return PATH_TABS[pathname] ?? "reps";
+}
 
 // Level/chamber color coding used on the level tag across cards and profiles.
 const CHAMBER_TAG_COLORS = {
@@ -1639,14 +1651,19 @@ function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user }) {
 
 export default function MandateWatch() {
   const platform = usePlatform();
-  const [tab, setTab] = useState("reps");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tab = tabFromPath(location.pathname);
+  function setTab(key) { navigate(TAB_PATHS[key] ?? "/"); }
   const [electionModeEnabled, setElectionModeEnabled] = useState(false);
   const [query, setQuery] = useState("");
   const [chamberFilter, setChamberFilter] = useState("All");
   const [stateFilter, setStateFilter] = useState("All");
   const [repsData, setRepsData] = useState(REPS);
   const [repVotes, setRepVotes] = useState({});
-  const [openRepId, setOpenRepId] = useState(null);
+  const openRepIdMatch = location.pathname.match(/^\/representatives\/(\d+)(?:\/|$)/);
+  const openRepId = openRepIdMatch ? Number(openRepIdMatch[1]) : null;
+  function setOpenRepId(id) { navigate(id ? `/representatives/${id}` : "/"); }
   const [aspirantVotes, setAspirantVotes] = useState({});
   const [voteCounts, setVoteCounts] = useState({});
   const [aspirantQuery, setAspirantQuery] = useState("");
@@ -1681,7 +1698,8 @@ export default function MandateWatch() {
   const [myClaimStatus, setMyClaimStatus] = useState({}); // repId -> "pending" | "rejected", own requests only
   const [claimModalRepId, setClaimModalRepId] = useState(null);
   const [pendingClaims, setPendingClaims] = useState([]); // admin-only: all pending requests to review
-  const [userProfileOpen, setUserProfileOpen] = useState(false);
+  const userProfileOpen = location.pathname === "/me";
+  function setUserProfileOpen(open) { navigate(open ? "/me" : "/"); }
   const [threadQuery, setThreadQuery] = useState("");
   const [threadRepFilter, setThreadRepFilter] = useState(null);
 
@@ -1785,6 +1803,12 @@ export default function MandateWatch() {
   const phase1Reps = useMemo(() => repsData.filter((r) => PHASE1_CHAMBERS.includes(r.chamber)), [repsData]);
   const openRep = openRepId ? repById[openRepId] : null;
   const ownsRep = (repId) => !!user && repById[repId]?.claimedBy === user.id;
+
+  // A bad/stale rep id in the URL is a real reachable case now that these are bookmarkable links
+  // (it couldn't happen before, since ids only ever came from clicking a real rep card).
+  useEffect(() => {
+    if (openRepId && repsData.length > 0 && !openRep) navigate("/", { replace: true });
+  }, [openRepId, openRep, repsData.length]);
   const localRepById = useMemo(() => Object.fromEntries(REPS.map((r) => [r.id, r])), []);
 
   // Live representatives + scores from Supabase, replacing the bundled REPS array on load.
@@ -2248,7 +2272,9 @@ export default function MandateWatch() {
   const repsGridRef = useRef(null);
   const mandateColRef = useRef(null);
   const [stewardshipList, setStewardshipList] = useState(STEWARDSHIP);
-  const [stewardshipRepId, setStewardshipRepId] = useState(null);
+  const stewardshipRepIdMatch = location.pathname.match(/^\/representatives\/(\d+)\/stewardship/);
+  const stewardshipRepId = stewardshipRepIdMatch ? Number(stewardshipRepIdMatch[1]) : null;
+  function setStewardshipRepId(id) { navigate(id ? `/representatives/${id}/stewardship` : "/"); }
   const [verifiedStewardshipIds, setVerifiedStewardshipIds] = useState([]);
   const [mapHoveredState, setMapHoveredState] = useState(null);
 
@@ -2819,7 +2845,7 @@ export default function MandateWatch() {
         </div>
         {user ? (
           <div className="mw-auth-pill">
-            <button className="mw-link-btn" style={{ color: "var(--verdant)", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }} onClick={() => { setUserProfileOpen(true); setOpenRepId(null); setStewardshipRepId(null); }}>
+            <button className="mw-link-btn" style={{ color: "var(--verdant)", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }} onClick={() => navigate("/me")}>
               <CheckCircle2 size={13} />
               <span>{user.name} · {user.lga} LGA, {user.state}</span>
             </button>
@@ -2865,7 +2891,7 @@ export default function MandateWatch() {
           threadsList={threadsList}
           repById={repById}
           user={user}
-          onNavigate={(t) => { setTab(t); setTimeout(() => repsGridRef.current && repsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
+          onNavigate={(path) => { navigate(path); setTimeout(() => repsGridRef.current && repsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }}
           onSignIn={() => setAuthOpen(true)}
         />
       </Suspense>
@@ -2883,10 +2909,10 @@ export default function MandateWatch() {
 
       <div className="mw-tabs" ref={repsGridRef}>
         {platform.navigation.map((item) => (
-          <button key={item.key} className={`mw-tab ${tab === item.tab ? "active" : ""}`} onClick={() => setTab(item.tab)}>{item.label}</button>
+          <Link key={item.key} to={item.path} className={`mw-tab ${location.pathname === item.path ? "active" : ""}`}>{item.label}</Link>
         ))}
         {electionModeEnabled && (
-          <button className={`mw-tab ${tab === "election" ? "active" : ""}`} onClick={() => setTab("election")}>Election Watch</button>
+          <Link to="/election" className={`mw-tab ${tab === "election" ? "active" : ""}`}>Election Watch</Link>
         )}
       </div>
 
@@ -3121,10 +3147,10 @@ export default function MandateWatch() {
         <RepProfilePage
           rep={openRep}
           onBack={() => setOpenRepId(null)}
-          onFileDemand={(repId) => { setOpenRepId(null); openSubmitForRep(repId); }}
-          onStateClick={(state) => { setStateFilter(state); setOpenRepId(null); setTab("reps"); }}
-          onViewDiscussion={(repId) => { setOpenRepId(null); setThreadRepFilter(repId); setTab("discussion"); }}
-          onViewStewardship={(repId) => { setOpenRepId(null); setStewardshipRepId(repId); }}
+          onFileDemand={(repId) => { navigate("/"); openSubmitForRep(repId); }}
+          onStateClick={(state) => { setStateFilter(state); navigate("/"); }}
+          onViewDiscussion={(repId) => { setThreadRepFilter(repId); navigate("/discussion"); }}
+          onViewStewardship={(repId) => navigate(`/representatives/${repId}/stewardship`)}
           voteState={repVotes[openRep.id]}
           onVote={(field, dir) => handleRepVote(openRep.id, field, dir)}
           isClaimed={openRep.claimedBy != null}
@@ -3149,7 +3175,7 @@ export default function MandateWatch() {
           verifiedIds={verifiedStewardshipIds}
           onAdd={handleAddStewardship}
           onVerify={handleVerifyStewardship}
-          onBack={() => { setStewardshipRepId(null); setOpenRepId(stewardshipRepId); }}
+          onBack={() => navigate(`/representatives/${stewardshipRepId}`)}
         />
       )}
 
@@ -3157,7 +3183,7 @@ export default function MandateWatch() {
         <UserProfilePage
           user={user}
           onBack={() => setUserProfileOpen(false)}
-          onSignOut={() => { signOut(); setUserProfileOpen(false); }}
+          onSignOut={() => { signOut(); navigate("/"); }}
           myDemands={demandsList.filter((d) => d.submittedBy === user.name)}
           myComments={commentsList.filter((c) => c.userId === user.id)}
           myVotedReps={Object.entries(repVotes).map(([repId, votes]) => ({ repId: Number(repId), votes }))}
@@ -3213,7 +3239,7 @@ export default function MandateWatch() {
               <div key={col.title} className="mw-footer-column">
                 <div className="mw-footer-column-title">{col.title}</div>
                 {col.links.map((link) => (
-                  <button key={link.label} className="mw-footer-link" onClick={() => link.tab && setTab(link.tab)}>{link.label}</button>
+                  <Link key={link.label} to={link.path ?? "#"} className="mw-footer-link">{link.label}</Link>
                 ))}
               </div>
             ))}
@@ -3222,7 +3248,7 @@ export default function MandateWatch() {
         {isAdmin && (
           <button
             className="mw-footer-admin-link"
-            onClick={() => { setOpenRepId(null); setUserProfileOpen(false); setStewardshipRepId(null); setTab("admin"); }}
+            onClick={() => navigate("/admin")}
           >
             Admin
           </button>

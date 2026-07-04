@@ -40,7 +40,7 @@ export function HowItWorks({ onNavigate }) {
           );
         })}
       </div>
-      <button className="hs-cta-btn" onClick={() => onNavigate("reps")}>
+      <button className="hs-cta-btn" onClick={() => onNavigate("/")}>
         {platform.cta.exploreRepresentatives} <ArrowRight size={14} />
       </button>
     </StorySection>

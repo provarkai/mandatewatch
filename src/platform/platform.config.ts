@@ -40,14 +40,14 @@ export const MARKETS: Market[] = [
   { code: "ZA", name: "South Africa", status: MARKET_STATUS.FUTURE },
 ];
 
-// tab: the App.jsx `tab` state value this product renders as, for products with a standalone nav
-// destination. Citizen Pulse / Approval Ratings are real, live mechanisms (rep voting) but live
-// inside the Representatives tab rather than as their own destination, so they have no `tab`.
+// path: the real URL this product renders at, for products with a standalone nav destination.
+// Citizen Pulse / Approval Ratings are real, live mechanisms (rep voting) but live inside the
+// Representatives page rather than as their own destination, so they have no `path`.
 export const PRODUCTS: ProductModuleEntry[] = [
-  { key: "representatives", label: "Representatives", status: PRODUCT_STATUS.LIVE, tab: "reps" },
-  { key: "pulseMap", label: "PulseMap™", status: PRODUCT_STATUS.LIVE, tab: "pulsemap" },
-  { key: "demands", label: "Demands", status: PRODUCT_STATUS.LIVE, tab: "demands" },
-  { key: "discussions", label: "Discussions", status: PRODUCT_STATUS.LIVE, tab: "discussion" },
+  { key: "representatives", label: "Representatives", status: PRODUCT_STATUS.LIVE, path: "/" },
+  { key: "pulseMap", label: "PulseMap™", status: PRODUCT_STATUS.LIVE, path: "/pulsemap" },
+  { key: "demands", label: "Demands", status: PRODUCT_STATUS.LIVE, path: "/demands" },
+  { key: "discussions", label: "Discussions", status: PRODUCT_STATUS.LIVE, path: "/discussion" },
   { key: "citizenPulse", label: "Citizen Pulse", status: PRODUCT_STATUS.LIVE },
   { key: "approvalRatings", label: "Approval Ratings", status: PRODUCT_STATUS.LIVE },
   { key: "insights", label: "Insights", status: PRODUCT_STATUS.UNRELEASED },
@@ -63,8 +63,8 @@ export const PRODUCTS: ProductModuleEntry[] = [
 // Election Watch is intentionally absent — it's injected at render time in App.jsx only when the
 // live, Supabase-backed Election Mode flag is on. A static list here would fight that toggle.
 export const NAVIGATION: NavigationItem[] = PRODUCTS.filter(
-  (p) => p.status === PRODUCT_STATUS.LIVE && p.tab
-).map((p) => ({ key: p.key, label: p.label, tab: p.tab as string }));
+  (p) => p.status === PRODUCT_STATUS.LIVE && p.path
+).map((p) => ({ key: p.key, label: p.label, path: p.path as string }));
 
 export const CTA_LABELS: CtaLabels = {
   signInSignUp: "Join the Pulse",
@@ -88,7 +88,7 @@ export const FOOTER: FooterConfig = {
   columns: [
     {
       title: "Platform",
-      links: NAVIGATION.map((n) => ({ label: n.label, tab: n.tab })),
+      links: NAVIGATION.map((n) => ({ label: n.label, path: n.path })),
     },
     // Resources/Company/Support/Legal have no real destinations yet in this router-less SPA —
     // left empty rather than filled with dead links. See CLAUDE.md decision 2.

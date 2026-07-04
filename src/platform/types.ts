@@ -25,20 +25,21 @@ export interface ProductModuleEntry {
   key: string;
   label: string;
   status: ProductStatus;
-  /** The App.jsx `tab` state value this product renders as, if it's a standalone nav destination. */
-  tab?: string;
+  /** The real URL path this product renders at, if it's a standalone nav destination. */
+  path?: string;
 }
 
 export interface NavigationItem {
   key: string;
   label: string;
-  tab: string;
+  path: string;
 }
 
 export interface FooterLink {
   label: string;
-  /** In-app tab key (scrolls/switches tab) — this app has no router, so there are no external hrefs yet. */
-  tab?: string;
+  /** Real in-app URL path (react-router) — this SPA has a router now, but not every column's
+   * destinations exist as real pages yet, so this stays optional. */
+  path?: string;
 }
 
 export interface FooterColumn {

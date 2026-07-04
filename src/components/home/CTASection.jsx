@@ -11,7 +11,7 @@ export function CTASection({ user, onNavigate, onSignIn }) {
       body={<p>Join Nigerians helping build a more transparent and accountable democracy.</p>}
     >
       <div className="hs-cta-actions">
-        <button className="hs-cta-primary" onClick={() => onNavigate("reps")}>
+        <button className="hs-cta-primary" onClick={() => onNavigate("/")}>
           {platform.cta.exploreRepresentatives} <ArrowRight size={14} />
         </button>
         {!user && (

@@ -345,7 +345,7 @@ function PulseVote({ label, question, value, tone, voted, onVote, upLabel, downL
   );
 }
 
-function RepProfilePage({ rep, onBack, onFileDemand, onStateClick, onViewDiscussion, onViewStewardship, voteState, onVote, isClaimed, isActingAsRep, onClaim, onResumeView, onExitView, repDemands, onAcknowledgeDemand, repThreads, commentsList }) {
+function RepProfilePage({ rep, onBack, onFileDemand, onStateClick, onViewDiscussion, onViewStewardship, voteState, onVote, isClaimed, isOwner, isActingAsRep, claimStatus, onClaim, onResumeView, onExitView, repDemands, onAcknowledgeDemand, repThreads, commentsList }) {
   if (!rep) return null;
   const initials = rep.name.replace(/^(Sen\.|Rep\.|Gov\.|Hon\.)\s/, "").split(" ").map(w => w[0]).join("").slice(0, 2);
   const v = voteState || {};
@@ -405,16 +405,18 @@ function RepProfilePage({ rep, onBack, onFileDemand, onStateClick, onViewDiscuss
         </div>
 
         <div className="mw-form-hint" style={{ margin: "4px 0 16px" }}>
-          Prototype demo only — a real launch would require an actual claim &amp; verification process (see PRD §3, Phase 2) before anyone could reply as this rep.
+          Claims are reviewed manually by MandateWatch before a profile is marked verified — only the reviewed, approved account can reply as this rep.
         </div>
         {!isClaimed && (
-          <button className="mw-btn mw-btn-ghost mw-verify-toggle" onClick={onClaim}>Claim &amp; Verify This Profile (demo)</button>
+          <button className="mw-btn mw-btn-ghost mw-verify-toggle" onClick={onClaim} disabled={claimStatus === "pending"}>
+            {claimStatus === "pending" ? "Claim submitted — pending review" : claimStatus === "rejected" ? "Claim declined — submit again" : "Claim & Verify This Profile"}
+          </button>
         )}
-        {isClaimed && isActingAsRep && (
+        {isClaimed && isOwner && isActingAsRep && (
           <button className="mw-btn mw-btn-primary mw-verify-toggle" onClick={onExitView}>Acting as Verified Rep — Exit</button>
         )}
-        {isClaimed && !isActingAsRep && (
-          <button className="mw-btn mw-btn-ghost mw-verify-toggle" onClick={onResumeView}>Continue as Verified Rep (demo)</button>
+        {isClaimed && isOwner && !isActingAsRep && (
+          <button className="mw-btn mw-btn-ghost mw-verify-toggle" onClick={onResumeView}>Continue as Verified Rep</button>
         )}
 
         <div className="mw-file-stats" style={{ margin: "20px 0" }}>
@@ -1022,7 +1024,7 @@ function RepForm({ initial, onSubmit, onCancel, submitLabel }) {
   );
 }
 
-function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsList, threadsList, aspirantsList, commentsList }) {
+function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsList, threadsList, aspirantsList, commentsList, pendingClaims, onApproveClaim, onRejectClaim }) {
   const [section, setSection] = useState("add");
   const [editingId, setEditingId] = useState(null);
   const [searchQ, setSearchQ] = useState("");
@@ -1065,10 +1067,33 @@ function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsLis
         <button className={`mw-chip ${section === "add" ? "active" : ""}`} onClick={() => { setSection("add"); setEditingId(null); }}>Add a Rep</button>
         <button className={`mw-chip ${section === "manage" ? "active" : ""}`} onClick={() => setSection("manage")}>Manage Reps ({repsData.length})</button>
         <button className={`mw-chip ${section === "aspirant" ? "active" : ""}`} onClick={() => setSection("aspirant")}>Add an Aspirant</button>
+        <button className={`mw-chip ${section === "claims" ? "active" : ""}`} onClick={() => setSection("claims")}>Rep Claims ({pendingClaims.length})</button>
         <button className={`mw-chip ${section === "export" ? "active" : ""}`} onClick={() => setSection("export")}>Export Data</button>
       </div>
 
       <div className="mw-page-card">
+        {section === "claims" && (
+          <div style={{ maxHeight: 480, overflowY: "auto" }}>
+            {pendingClaims.map((c) => {
+              const rep = repsData.find((r) => r.id === c.repId);
+              return (
+                <div key={c.id} className="mw-rep-demand-row">
+                  <div className="mw-rep-demand-top">
+                    <span className="mw-rep-demand-title">{c.requesterName} ({c.requesterEmail}) wants to claim {rep ? rep.name : `rep #${c.repId}`}</span>
+                    <span className="mw-form-hint" style={{ margin: 0 }}>{c.createdAt}</span>
+                  </div>
+                  <p className="mw-comment-body" style={{ margin: "6px 0" }}>{c.justification}</p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="mw-chip" onClick={() => onApproveClaim(c.id)}>Approve</button>
+                    <button className="mw-chip" onClick={() => onRejectClaim(c.id)}>Reject</button>
+                  </div>
+                </div>
+              );
+            })}
+            {pendingClaims.length === 0 && <div className="mw-form-hint">No pending claim requests.</div>}
+          </div>
+        )}
+
         {section === "add" && !editingId && (
           <RepForm
             initial={BLANK_REP_FORM}
@@ -1202,7 +1227,7 @@ function StewardshipPage({ rep, entries, isActingAsRep, verifiedIds, onAdd, onVe
         </div>
 
         <div className="mw-form-hint" style={{ margin: "4px 0 18px" }}>
-          A record of what this rep says they've delivered — each entry stays unverified until citizens confirm it happened. Prototype demo: real launch would require the same claim-and-verify gate as official responses (see PRD §3, Phase 2).
+          A record of what this rep says they've delivered — each entry stays unverified until citizens confirm it happened. The claim gate above is real and admin-reviewed; this board itself is still prototype-only and resets on refresh.
         </div>
 
         {isActingAsRep && (
@@ -1390,6 +1415,40 @@ function AuthModal({ open, onClose, onComplete, pendingAuthUser }) {
             </div>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ClaimRepModal({ rep, onClose, onSubmit }) {
+  const [justification, setJustification] = useState("");
+
+  useEffect(() => {
+    if (rep) setJustification("");
+  }, [rep]);
+
+  if (!rep) return null;
+
+  return (
+    <div className="mw-modal-backdrop" onClick={onClose}>
+      <div className="mw-modal" onClick={(e) => e.stopPropagation()}>
+        <button className="mw-modal-close" onClick={onClose}><X size={18} /></button>
+        <div className="mw-section-eyebrow">Claim &amp; verify</div>
+        <h2 className="mw-modal-name" style={{ marginBottom: 16 }}>Claim {rep.name}'s profile</h2>
+
+        <label className="mw-form-label">How can we verify this is you?</label>
+        <textarea
+          className="mw-form-input mw-form-textarea"
+          placeholder="Share an official email address, a verified social account, or another way to confirm your identity as this representative…"
+          value={justification}
+          onChange={(e) => setJustification(e.target.value)}
+        />
+        <div className="mw-form-hint">Reviewed manually by MandateWatch — you'll be marked as a Verified Rep once approved.</div>
+
+        <div className="mw-modal-actions">
+          <button className="mw-btn mw-btn-primary" onClick={() => onSubmit(justification.trim())} disabled={!justification.trim()}>Submit claim</button>
+          <button className="mw-btn mw-btn-ghost" onClick={onClose}>Cancel</button>
+        </div>
       </div>
     </div>
   );
@@ -1585,8 +1644,10 @@ export default function MandateWatch() {
   const [commentVotes, setCommentVotes] = useState({});
   const [openThreadId, setOpenThreadId] = useState(null);
   const [newThreadOpen, setNewThreadOpen] = useState(false);
-  const [claimedRepIds, setClaimedRepIds] = useState([]);
   const [activeRepView, setActiveRepView] = useState(null);
+  const [myClaimStatus, setMyClaimStatus] = useState({}); // repId -> "pending" | "rejected", own requests only
+  const [claimModalRepId, setClaimModalRepId] = useState(null);
+  const [pendingClaims, setPendingClaims] = useState([]); // admin-only: all pending requests to review
   const [userProfileOpen, setUserProfileOpen] = useState(false);
   const [threadQuery, setThreadQuery] = useState("");
   const [threadRepFilter, setThreadRepFilter] = useState(null);
@@ -1689,6 +1750,7 @@ export default function MandateWatch() {
 
   const repById = useMemo(() => Object.fromEntries(repsData.map((r) => [r.id, r])), [repsData]);
   const openRep = openRepId ? repById[openRepId] : null;
+  const ownsRep = (repId) => !!user && repById[repId]?.claimedBy === user.id;
   const localRepById = useMemo(() => Object.fromEntries(REPS.map((r) => [r.id, r])), []);
 
   // Live representatives + scores from Supabase, replacing the bundled REPS array on load.
@@ -1726,12 +1788,56 @@ export default function MandateWatch() {
             demands: local.demands ?? 0,
             topDemand: local.topDemand ?? "No demands filed yet — be the first.",
             status: local.status ?? "ON WATCH",
+            claimedBy: row.claimed_by,
           };
         });
         if (merged.length > 0) setRepsData(merged);
       });
     return () => { cancelled = true; };
   }, [localRepById]);
+
+  // Hydrate the signed-in user's own claim requests, so "Claim & Verify" reflects a pending or
+  // rejected request instead of always showing as available.
+  useEffect(() => {
+    if (!user) { setMyClaimStatus({}); return; }
+    let cancelled = false;
+    supabase
+      .from("rep_claim_requests")
+      .select("rep_id, status")
+      .eq("user_id", user.id)
+      .in("status", ["pending", "rejected"])
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setMyClaimStatus(Object.fromEntries(data.map((r) => [r.rep_id, r.status])));
+      });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Admins only: every pending claim request, for the Admin panel's review tab.
+  useEffect(() => {
+    if (!isAdmin) { setPendingClaims([]); return; }
+    let cancelled = false;
+    supabase
+      .from("rep_claim_requests")
+      .select("id, rep_id, user_id, requester_name, requester_email, justification, created_at")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setPendingClaims(
+          data.map((row) => ({
+            id: row.id,
+            repId: row.rep_id,
+            userId: row.user_id,
+            requesterName: row.requester_name,
+            requesterEmail: row.requester_email,
+            justification: row.justification,
+            createdAt: row.created_at.slice(0, 10),
+          }))
+        );
+      });
+    return () => { cancelled = true; };
+  }, [isAdmin]);
 
   // Hydrate which reps/fields the signed-in user has already voted on, so buttons still show
   // "already voted" after a reload — not just within the current session.
@@ -1935,7 +2041,9 @@ export default function MandateWatch() {
     }
   }
 
-  function handleAcknowledgeDemand(demandId, newStatus) {
+  async function handleAcknowledgeDemand(demandId, newStatus) {
+    const { error } = await supabase.rpc("acknowledge_demand", { demand_id: demandId, new_status: newStatus });
+    if (error) return;
     setDemandsList((prev) => prev.map((d) => (d.id === demandId ? { ...d, status: newStatus } : d)));
   }
 
@@ -1955,9 +2063,37 @@ export default function MandateWatch() {
     setAspirantsList((prev) => [...prev, newAspirant]);
   }
 
-  function claimRep(repId) {
-    setClaimedRepIds((prev) => (prev.includes(repId) ? prev : [...prev, repId]));
-    setActiveRepView(repId);
+  async function handleSubmitClaim(justification) {
+    if (!user || !claimModalRepId) return;
+    const repId = claimModalRepId;
+
+    const { error } = await supabase.from("rep_claim_requests").insert({
+      rep_id: repId,
+      user_id: user.id,
+      requester_name: user.name,
+      requester_email: user.email,
+      justification,
+    });
+    setClaimModalRepId(null);
+    if (error) return; // most likely a duplicate pending request from another tab
+    setMyClaimStatus((prev) => ({ ...prev, [repId]: "pending" }));
+  }
+
+  async function handleApproveClaim(requestId) {
+    const { error } = await supabase.rpc("approve_rep_claim", { request_id: requestId });
+    if (error) return;
+    setPendingClaims((prev) => prev.filter((c) => c.id !== requestId));
+    // Reflect the newly-claimed rep locally without a full refetch.
+    const approved = pendingClaims.find((c) => c.id === requestId);
+    if (approved) {
+      setRepsData((prev) => prev.map((r) => (r.id === approved.repId ? { ...r, claimedBy: approved.userId } : r)));
+    }
+  }
+
+  async function handleRejectClaim(requestId) {
+    const { error } = await supabase.rpc("reject_rep_claim", { request_id: requestId });
+    if (error) return;
+    setPendingClaims((prev) => prev.filter((c) => c.id !== requestId));
   }
 
   function resumeRepView(repId) {
@@ -2713,7 +2849,7 @@ export default function MandateWatch() {
             </div>
           )}
           <div className="mw-grid">
-            {filtered.map((rep) => <RepCard key={rep.id} rep={rep} onOpen={(r) => setOpenRepId(r.id)} isClaimed={claimedRepIds.includes(rep.id)} />)}
+            {filtered.map((rep) => <RepCard key={rep.id} rep={rep} onOpen={(r) => setOpenRepId(r.id)} isClaimed={rep.claimedBy != null} />)}
             {filtered.length === 0 && (
               <div style={{ padding: "40px 0", color: "var(--ink-soft)", fontFamily: "IBM Plex Mono", fontSize: 13 }}>
                 {myAreaOnly ? "No reps match your area in the sample data yet." : "No officials match that search. Try a different name, state, or chamber."}
@@ -2875,6 +3011,9 @@ export default function MandateWatch() {
           threadsList={threadsList}
           commentsList={commentsList}
           aspirantsList={aspirantsList}
+          pendingClaims={pendingClaims}
+          onApproveClaim={handleApproveClaim}
+          onRejectClaim={handleRejectClaim}
         />
       )}
       </>
@@ -2890,9 +3029,11 @@ export default function MandateWatch() {
           onViewStewardship={(repId) => { setOpenRepId(null); setStewardshipRepId(repId); }}
           voteState={repVotes[openRep.id]}
           onVote={(field, dir) => handleRepVote(openRep.id, field, dir)}
-          isClaimed={claimedRepIds.includes(openRep.id)}
-          isActingAsRep={activeRepView === openRep.id}
-          onClaim={() => claimRep(openRep.id)}
+          isClaimed={openRep.claimedBy != null}
+          isOwner={ownsRep(openRep.id)}
+          isActingAsRep={ownsRep(openRep.id) && activeRepView === openRep.id}
+          claimStatus={myClaimStatus[openRep.id]}
+          onClaim={() => (user ? setClaimModalRepId(openRep.id) : setAuthOpen(true))}
           onResumeView={() => resumeRepView(openRep.id)}
           onExitView={exitRepView}
           repDemands={demandsList.filter((d) => d.repId === openRep.id)}
@@ -2906,7 +3047,7 @@ export default function MandateWatch() {
         <StewardshipPage
           rep={repById[stewardshipRepId]}
           entries={stewardshipList.filter((e) => e.repId === stewardshipRepId)}
-          isActingAsRep={activeRepView === stewardshipRepId}
+          isActingAsRep={ownsRep(stewardshipRepId) && activeRepView === stewardshipRepId}
           verifiedIds={verifiedStewardshipIds}
           onAdd={handleAddStewardship}
           onVerify={handleVerifyStewardship}
@@ -2942,13 +3083,18 @@ export default function MandateWatch() {
         user={user}
         isVerifiedForThisRep={(() => {
           const t = threadsList.find((t) => t.id === openThreadId);
-          return !!(t && t.repId && activeRepView === t.repId);
+          return !!(t && t.repId && ownsRep(t.repId) && activeRepView === t.repId);
         })()}
       />
       <NewThreadModal
         open={newThreadOpen}
         onClose={() => setNewThreadOpen(false)}
         onSubmit={(payload) => { handleStartThread(payload); setNewThreadOpen(false); }}
+      />
+      <ClaimRepModal
+        rep={claimModalRepId ? repById[claimModalRepId] : null}
+        onClose={() => setClaimModalRepId(null)}
+        onSubmit={handleSubmitClaim}
       />
 
       <SubmitDemandModal

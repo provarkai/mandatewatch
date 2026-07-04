@@ -140,6 +140,52 @@ surfaces during a defined election period, gated by **Election Mode** (see below
 9. **Real client-side routing** (`react-router-dom` + `vercel.json` rewrite) — see "Current stack"
    above for the shim pattern. This was the prerequisite for Slice 1D (mega-footer + four-pillar
    nav + new destination pages), now unblocked.
+10. **Engineering readiness pass** (Slice 1D) — dead-code/lint cleanup (including a real bug fix:
+    `handleAddComment` was never sending `body` to Supabase, so every Discussion reply had been
+    silently failing the `comments.body not null` constraint since Slice 3 — fixed); logo.png
+    1.05MB → 137KB; Google Fonts moved from a render-blocking `@import` to `<link>` tags in
+    `index.html`; the Nigeria map's ~65KB of SVG path data (`src/data/nigeriaMapPaths.js`) now
+    lazy-loads only when `/pulsemap` is visited; a real 404 state for unmatched routes
+    (`isKnownPath`/`tabFromPath` in `src/lib/routing.js`, unit-tested via `vitest` —
+    `npm test`); `prefers-reduced-motion` support and a `.mw-search` focus-visible fix;
+    `manifest.json`/`robots.txt`/`sitemap.xml` added.
+
+## Security notes (reviewed, not a full pentest)
+- **Client-side route/tab visibility is never the actual security boundary in this app — RLS is.**
+  E.g. the Admin tab is hidden client-side when `!isAdmin`, but the *real* protection is that
+  `approve_rep_claim`/`reject_rep_claim`/`acknowledge_demand` all re-check `admins`/`claimed_by`
+  membership server-side (migrations `0004`+) — a user who forced the tab open client-side still
+  couldn't do anything, because the RPCs would reject them. Keep this invariant for any new
+  admin-ish feature: gate the UI for UX, but always re-check server-side.
+- **No `dangerouslySetInnerHTML`, `eval`, or `new Function` anywhere in `src/`** (grepped, zero
+  hits) — React's default JSX escaping is the only XSS defense in place, and it's sufficient as
+  long as this stays true. Watch for this the first time anyone renders user-submitted content as
+  literal HTML (e.g. a future "rich text" demand description).
+- **Client-side input validation (email regex in `Newsletter.jsx`, phone regex in `AuthModal`) is
+  UX sugar, not the real boundary** — Postgres `check` constraints and RLS `with check` clauses are
+  what actually enforce data integrity (e.g. `demands.status` can only be one of three values
+  because of a `check` constraint, not because the client only ever sends one of three values).
+- **Historical incident, worth remembering**: earlier this session, a PowerShell pipe silently
+  prepended a BOM character to the Supabase anon key when setting it as a Vercel env var, causing
+  a hard-to-diagnose auth failure. Lesson already applied: env vars are now set via
+  `vercel env add --value <value>` (args array), never piped through PowerShell.
+- **Recommended for a future slice, not implemented**: real RBAC beyond the single `admins`
+  allowlist (e.g. a moderator role distinct from full admin) if the admin surface grows;
+  rate-limiting on `newsletter_signups`/`rep_claim_requests` inserts (currently unlimited public
+  inserts, gated only by the unique-email constraint and Supabase's own default abuse protection).
+
+## Observability (architecture notes only — nothing implemented)
+- No analytics, error logging, or performance monitoring exist yet. If/when added: `main.jsx` is
+  the natural init point (wrap `<BrowserRouter>` at the very top), and `src/platform/` is the
+  natural home for a future `analytics` or `observability` config module (API keys, sample rates)
+  following the same pattern as `FEATURE_FLAGS` — a typed config object, not scattered `if` checks.
+- Feature flags already exist (`src/platform/platform.config.ts`'s `FEATURE_FLAGS`) as the
+  extension point for any future experimentation — a real A/B test would read a flag from there,
+  not add a new ad hoc mechanism.
+- Audit-log-style tracking (who approved which rep claim, who toggled Election Mode) isn't
+  captured today beyond `reviewed_by`/`reviewed_at` on `rep_claim_requests` — worth a dedicated
+  `audit_log` table if/when this becomes a real requirement, rather than bolting timestamps onto
+  every table individually.
 
 ## Still open
 - Stewardship (claimed rep posts what they've delivered, citizens verify) — still local-only.

@@ -1,0 +1,12 @@
+{
+  "name": "MandateWatch",
+  "short_name": "MandateWatch",
+  "description": "Track every mandate. Measure every voice. Hold leaders accountable.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EEF0E6",
+  "theme_color": "#1F5E3F",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

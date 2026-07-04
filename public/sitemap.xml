@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Static, hand-maintained -- lists the real top-level routes that exist post-routing (Slice 1D).
+     Individual /representatives/:id pages aren't listed since the directory changes as reps are
+     added/claimed; revisit with a generated sitemap if that becomes worth automating. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://mandatewatch.vercel.app/</loc>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://mandatewatch.vercel.app/pulsemap</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mandatewatch.vercel.app/demands</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mandatewatch.vercel.app/discussion</loc>
+    <priority>0.8</priority>
+  </url>
+</urlset>

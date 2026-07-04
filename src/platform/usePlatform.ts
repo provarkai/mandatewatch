@@ -1,6 +1,6 @@
 // Platform Architecture Layer — Slice 1A.
 import { useContext } from "react";
-import { PlatformContext } from "./PlatformProvider";
+import { PlatformContext } from "./PlatformContext";
 import type { PlatformContextValue } from "./types";
 
 export function usePlatform(): PlatformContextValue {

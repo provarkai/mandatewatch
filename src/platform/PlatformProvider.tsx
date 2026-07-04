@@ -1,7 +1,7 @@
 // Platform Architecture Layer — Slice 1A. Root configuration provider for the entire application.
 // Wraps <App /> in main.jsx. See CLAUDE.md for the architecture decisions behind this layer.
 
-import { createContext, useMemo, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   BRAND,
   MARKETS,
@@ -16,8 +16,7 @@ import {
   DESIGN_TOKENS,
 } from "./platform.config";
 import type { PlatformContextValue } from "./types";
-
-export const PlatformContext = createContext<PlatformContextValue | null>(null);
+import { PlatformContext } from "./PlatformContext";
 
 export function PlatformProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PlatformContextValue>(() => {

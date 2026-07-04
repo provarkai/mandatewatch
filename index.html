@@ -3,10 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1F5E3F" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Kept in sync by hand with src/platform/platform.config.ts's SEO export — this is a
-         router-less Vite SPA with no build-time templating, so there's no way to generate this
-         file from that config automatically without adding an HTML-templating plugin. -->
+
+    <!-- Preconnect + real <link> stylesheet instead of a CSS @import inside App.jsx's inline
+         <style> block -- @import is render-blocking (the browser can't discover it until it has
+         already parsed and started applying the parent stylesheet). This is the standard fix. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@800;900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+    <!-- Kept in sync by hand with src/platform/platform.config.ts's SEO export — this is a Vite
+         SPA with real client-side routing (react-router-dom + vercel.json rewrite) but no
+         server-side rendering, so there's no build-time templating to generate this file from
+         that config automatically without adding an HTML-templating plugin. -->
     <title>MandateWatch — The Pulse of Nigerian Democracy</title>
     <meta name="description" content="Track every mandate. Measure every voice. Hold leaders accountable. MandateWatch is Nigeria's civic accountability platform for representative performance, citizen demands, and democratic participation." />
     <meta name="keywords" content="Nigeria, civic accountability, elected officials, representatives, approval ratings, citizen demands, democracy" />

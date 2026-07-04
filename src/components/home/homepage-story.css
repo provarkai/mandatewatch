@@ -156,3 +156,14 @@
   .hs-compare-grid { grid-template-columns: 1fr; }
   .hs-section-cta .hs-headline { font-size: 24px; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hs-compare-card, .hs-preview-card, .hs-audience-card, .hs-standard-card, .hs-trust-card {
+    transition: none;
+  }
+  .hs-compare-card:hover, .hs-preview-card:hover, .hs-audience-card:hover,
+  .hs-standard-card:hover, .hs-trust-card:hover {
+    transform: none;
+  }
+  .hs-transition-arrow { animation: none; }
+}

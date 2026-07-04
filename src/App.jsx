@@ -1024,7 +1024,7 @@ function RepForm({ initial, onSubmit, onCancel, submitLabel }) {
   );
 }
 
-function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsList, threadsList, aspirantsList, commentsList, pendingClaims, onApproveClaim, onRejectClaim }) {
+function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsList, threadsList, aspirantsList, commentsList, pendingClaims, onApproveClaim, onRejectClaim, electionModeEnabled, onToggleElectionMode }) {
   const [section, setSection] = useState("add");
   const [editingId, setEditingId] = useState(null);
   const [searchQ, setSearchQ] = useState("");
@@ -1061,6 +1061,18 @@ function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsLis
       <h2 className="mw-modal-name" style={{ marginBottom: 4 }}>Manage MandateWatch Data</h2>
       <div className="mw-form-hint" style={{ marginBottom: 16 }}>
         Prototype demo — access is gated to allowlisted admin accounts, but changes made here still only apply to this browser session, not the live database.
+      </div>
+
+      <div className="mw-rep-demand-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <div>
+          <div className="mw-rep-demand-title">Election Mode</div>
+          <div className="mw-form-hint" style={{ margin: 0 }}>
+            {electionModeEnabled ? "On — the Election Watch tab is visible to everyone." : "Off — Election Watch is hidden site-wide until an election period."}
+          </div>
+        </div>
+        <button className={`mw-chip ${electionModeEnabled ? "active" : ""}`} onClick={onToggleElectionMode}>
+          {electionModeEnabled ? "Turn off" : "Turn on"}
+        </button>
       </div>
 
       <div className="mw-admin-tabs">
@@ -1620,6 +1632,7 @@ function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user }) {
 
 export default function MandateWatch() {
   const [tab, setTab] = useState("reps");
+  const [electionModeEnabled, setElectionModeEnabled] = useState(false);
   const [query, setQuery] = useState("");
   const [chamberFilter, setChamberFilter] = useState("All");
   const [stateFilter, setStateFilter] = useState("All");
@@ -1807,6 +1820,35 @@ export default function MandateWatch() {
       });
     return () => { cancelled = true; };
   }, [localRepById]);
+
+  // Election Watch is secondary to MandateWatch's core between-elections focus — only shown when
+  // an admin has switched Election Mode on, via app_settings (public read, no auth required).
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("app_settings")
+      .select("election_mode_enabled")
+      .eq("id", true)
+      .single()
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setElectionModeEnabled(data.election_mode_enabled);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // If Election Mode gets switched off while someone's sitting on that tab, don't leave them on a
+  // now-hidden tab with no way back to it via the nav.
+  useEffect(() => {
+    if (!electionModeEnabled && tab === "election") setTab("reps");
+  }, [electionModeEnabled, tab]);
+
+  async function handleToggleElectionMode() {
+    const next = !electionModeEnabled;
+    const { error } = await supabase.from("app_settings").update({ election_mode_enabled: next }).eq("id", true);
+    if (error) return;
+    setElectionModeEnabled(next);
+  }
 
   // Hydrate the signed-in user's own claim requests, so "Claim & Verify" reflects a pending or
   // rejected request instead of always showing as available.
@@ -2826,7 +2868,9 @@ export default function MandateWatch() {
 
       <div className="mw-tabs" ref={repsGridRef}>
         <button className={`mw-tab ${tab === "reps" ? "active" : ""}`} onClick={() => setTab("reps")}>Representatives</button>
-        <button className={`mw-tab ${tab === "election" ? "active" : ""}`} onClick={() => setTab("election")}>Election Watch</button>
+        {electionModeEnabled && (
+          <button className={`mw-tab ${tab === "election" ? "active" : ""}`} onClick={() => setTab("election")}>Election Watch</button>
+        )}
         <button className={`mw-tab ${tab === "demands" ? "active" : ""}`} onClick={() => setTab("demands")}>Demands Board</button>
         <button className={`mw-tab ${tab === "discussion" ? "active" : ""}`} onClick={() => setTab("discussion")}>Discussion</button>
       </div>
@@ -2874,7 +2918,7 @@ export default function MandateWatch() {
         </>
       )}
 
-      {tab === "election" && (
+      {electionModeEnabled && tab === "election" && (
         <>
           <div className="mw-toolbar">
             <div className="mw-search">
@@ -3029,6 +3073,8 @@ export default function MandateWatch() {
           pendingClaims={pendingClaims}
           onApproveClaim={handleApproveClaim}
           onRejectClaim={handleRejectClaim}
+          electionModeEnabled={electionModeEnabled}
+          onToggleElectionMode={handleToggleElectionMode}
         />
       )}
       </>

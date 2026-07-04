@@ -2933,7 +2933,7 @@ export default function MandateWatch() {
               <Search size={15} color="#97998a" />
               <input placeholder="Search by name, state, or constituency…" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
-            <select className="mw-select" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
+            <select className="mw-select" aria-label="Filter representatives by region or state" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)}>
               <option value="All">All regions &amp; states</option>
               {Object.entries(REGIONS).map(([region, states]) => (
                 <optgroup key={region} label={region}>
@@ -2976,7 +2976,7 @@ export default function MandateWatch() {
               <Search size={15} color="#97998a" />
               <input placeholder="Search aspirants by name, party, or race…" value={aspirantQuery} onChange={(e) => setAspirantQuery(e.target.value)} />
             </div>
-            <select className="mw-select" value={aspirantStateFilter} onChange={(e) => setAspirantStateFilter(e.target.value)}>
+            <select className="mw-select" aria-label="Filter aspirants by region or state" value={aspirantStateFilter} onChange={(e) => setAspirantStateFilter(e.target.value)}>
               <option value="All">All regions &amp; states</option>
               {Object.entries(REGIONS).map(([region, states]) => (
                 <optgroup key={region} label={region}>
@@ -3032,7 +3032,7 @@ export default function MandateWatch() {
               <Search size={15} color="#97998a" />
               <input placeholder="Search demands by title or representative…" value={demandQuery} onChange={(e) => setDemandQuery(e.target.value)} />
             </div>
-            <select className="mw-select" value={demandStateFilter} onChange={(e) => setDemandStateFilter(e.target.value)}>
+            <select className="mw-select" aria-label="Filter demands by region or state" value={demandStateFilter} onChange={(e) => setDemandStateFilter(e.target.value)}>
               <option value="All">All regions &amp; states</option>
               {Object.entries(REGIONS).map(([region, states]) => (
                 <optgroup key={region} label={region}>

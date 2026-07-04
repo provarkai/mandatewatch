@@ -1422,12 +1422,23 @@ function AuthModal({ open, onClose, onComplete, pendingAuthUser }) {
 
 function ClaimRepModal({ rep, onClose, onSubmit }) {
   const [justification, setJustification] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (rep) setJustification("");
+    if (rep) { setJustification(""); setError(""); setBusy(false); }
   }, [rep]);
 
   if (!rep) return null;
+
+  async function submit() {
+    setBusy(true);
+    setError("");
+    const errorMessage = await onSubmit(justification.trim());
+    setBusy(false);
+    if (errorMessage) setError(errorMessage);
+    else onClose();
+  }
 
   return (
     <div className="mw-modal-backdrop" onClick={onClose}>
@@ -1444,9 +1455,10 @@ function ClaimRepModal({ rep, onClose, onSubmit }) {
           onChange={(e) => setJustification(e.target.value)}
         />
         <div className="mw-form-hint">Reviewed manually by MandateWatch — you'll be marked as a Verified Rep once approved.</div>
+        {error && <div className="mw-form-error">{error}</div>}
 
         <div className="mw-modal-actions">
-          <button className="mw-btn mw-btn-primary" onClick={() => onSubmit(justification.trim())} disabled={!justification.trim()}>Submit claim</button>
+          <button className="mw-btn mw-btn-primary" onClick={submit} disabled={!justification.trim() || busy}>{busy ? "Submitting…" : "Submit claim"}</button>
           <button className="mw-btn mw-btn-ghost" onClick={onClose}>Cancel</button>
         </div>
       </div>
@@ -2063,8 +2075,10 @@ export default function MandateWatch() {
     setAspirantsList((prev) => [...prev, newAspirant]);
   }
 
+  // Returns an error message string on failure (so ClaimRepModal can show it and stay open),
+  // or null on success (so ClaimRepModal knows it can close itself).
   async function handleSubmitClaim(justification) {
-    if (!user || !claimModalRepId) return;
+    if (!user || !claimModalRepId) return "You need to be signed in to submit a claim.";
     const repId = claimModalRepId;
 
     const { error } = await supabase.from("rep_claim_requests").insert({
@@ -2074,9 +2088,10 @@ export default function MandateWatch() {
       requester_email: user.email,
       justification,
     });
-    setClaimModalRepId(null);
-    if (error) return; // most likely a duplicate pending request from another tab
+    if (error) return error.message; // e.g. a duplicate pending request from another tab
+
     setMyClaimStatus((prev) => ({ ...prev, [repId]: "pending" }));
+    return null;
   }
 
   async function handleApproveClaim(requestId) {

@@ -21,7 +21,22 @@ surfaces during a defined election period, gated by **Election Mode** (see below
 
 ## Current stack (reality check)
 - **Vite + React 19 SPA**, plain JavaScript (`.jsx`), not TypeScript. Deployed to Vercel
-  (`mandatewatch.vercel.app`) via `vercel --prod --yes`.
+  (`mandatewatch.vercel.app`) via `vercel --prod --yes`. `vercel.json` rewrites every path to
+  `/index.html` — required for client-side routing (see below); don't remove it.
+- **Real client-side routing via `react-router-dom`** (added as the prerequisite for the Slice 1D
+  mega-footer). Navigation state (`tab`, `openRepId`, `userProfileOpen`, `stewardshipRepId` in
+  `App.jsx`) is derived from `useLocation()`/parsed from the URL rather than `useState`, with a
+  same-named setter that calls `navigate()` — this was a deliberate choice to avoid rewriting the
+  render tree into nested `<Routes>`/`<Outlet>`, so almost every existing `tab === "x"` conditional
+  and `setTab("x")` call site needed zero changes. Real paths: `/`, `/pulsemap`, `/demands`,
+  `/discussion`, `/election`, `/admin`, `/representatives/:id`,
+  `/representatives/:id/stewardship`, `/me`. `platform.config.ts`'s navigation/product/footer-link
+  entries use a `path` field with real URL values (not the old bare `tab` keys). When adding a new
+  top-level view, follow this same shim pattern rather than introducing a second navigation
+  mechanism.
+- Nested `<Routes>`/`<Outlet>` was considered and deliberately rejected for this pass — it would
+  need an `AppLayout` extraction and prop-drilling most of `MandateWatch`'s state. Revisit only if
+  the shim approach genuinely stops scaling (e.g. many more top-level pages).
 - **Supabase** is the entire backend: Postgres + Auth (magic-link) + RLS. No custom server, no API
   routes — the browser talks to Supabase directly via `@supabase/supabase-js`.
 - Decision (locked in during Slice 1, reaffirmed since): **stay on Vite, no Next.js migration**.
@@ -120,17 +135,20 @@ surfaces during a defined election period, gated by **Election Mode** (see below
    the roadmap, no separate data structure. `Newsletter` has a real capture backend
    (`newsletter_signups`, public-insert/admin-only-read) — no in-app admin UI to browse it yet, view
    it via the Supabase Table Editor. The full Stripe/GitHub-style mega-footer and four-pillar nav
-   (Platform/Participation/Accountability/Resources) discussed alongside this are **explicitly
-   deferred** — they imply ~15 real destination pages this router-less SPA doesn't have yet, and
-   need a routing decision first.
+   (Platform/Participation/Accountability/Resources) discussed alongside this were **deferred**
+   pending a routing decision — resolved by item 9 below.
+9. **Real client-side routing** (`react-router-dom` + `vercel.json` rewrite) — see "Current stack"
+   above for the shim pattern. This was the prerequisite for Slice 1D (mega-footer + four-pillar
+   nav + new destination pages), now unblocked.
 
 ## Still open
 - Stewardship (claimed rep posts what they've delivered, citizens verify) — still local-only.
 - Election Watch / Aspirants real data — still fully mock (`ASPIRANTS = []`).
 - Footer's Resources/Company/Support/Legal columns are intentionally empty (no real pages/routes
-  exist yet in this SPA) — populate once those destinations are real, not with placeholder links.
-- Mega-footer + four-pillar nav (Platform/Participation/Accountability/Resources) redesign — needs
-  a routing decision first (no router exists in this SPA today); see item 8 above.
+  exist yet) — populate once those destinations are real, not with placeholder links. Routing
+  itself is no longer the blocker (item 9) — the pages themselves still need to be built.
+- Mega-footer + four-pillar nav (Platform/Participation/Accountability/Resources) redesign — this is
+  Slice 1D, not yet started.
 - No in-app admin UI to view/export `newsletter_signups` yet — Supabase Table Editor only.
 - Insights, Pulse Reports/Rankings/Index, Open Civic API, Research Centre, Developer Platform,
   Analytics Suite are registered in `src/platform/platform.config.ts`'s `PRODUCTS` as `unreleased`

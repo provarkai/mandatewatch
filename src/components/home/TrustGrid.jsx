@@ -12,7 +12,7 @@ const PILLARS = [
 
 export function TrustGrid() {
   return (
-    <StorySection eyebrow="Why trust MandateWatch" headline="Built On Transparency" tone="institutional">
+    <StorySection eyebrow="Institutional trust" headline="Built On Institutional Trust" tone="institutional">
       <div className="hs-trust-grid">
         {PILLARS.map((p) => {
           const Icon = p.icon;

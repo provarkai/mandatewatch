@@ -37,7 +37,7 @@ export function InsightsPreview({ demandsList, repById, phase1Reps }) {
   ];
 
   return (
-    <StorySection eyebrow="Latest insights" headline="Latest Insights">
+    <StorySection eyebrow="Research & media" headline="Research & Media">
       <div className="hs-insights-grid">
         {cards.map((c) => {
           const Icon = c.icon;

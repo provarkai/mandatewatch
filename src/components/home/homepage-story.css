@@ -116,6 +116,40 @@
   50% { transform: translateY(4px); }
 }
 
+/* Accountability Standard */
+.hs-standard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.hs-standard-card { background: var(--paper-card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.hs-standard-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(27,42,58,0.08); }
+.hs-standard-icon { color: var(--rust); margin-bottom: 10px; }
+.hs-standard-card h3 { font-family: 'Archivo'; font-size: 14.5px; color: var(--ink); margin: 0 0 8px; }
+.hs-standard-card p { font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; margin: 0; }
+
+/* Open Data Philosophy */
+.hs-opendata-note { display: flex; align-items: center; gap: 12px; background: rgba(31,94,63,0.06); border: 1px solid var(--verdant); border-radius: 10px; padding: 16px 20px; max-width: 640px; margin: 0 auto; color: var(--ink); font-size: 13px; }
+.hs-opendata-note svg { color: var(--verdant); flex-shrink: 0; }
+.hs-opendata-note-secondary { margin-left: auto; opacity: 0.5; }
+
+/* Principles */
+.hs-principles-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.hs-principle { display: flex; align-items: center; gap: 7px; background: var(--paper-card); border: 1px solid var(--line); border-radius: 20px; padding: 8px 16px; font-size: 12.5px; color: var(--ink); }
+.hs-principle svg { color: var(--verdant); }
+
+/* Transparency */
+.hs-transparency-note { display: flex; align-items: flex-start; gap: 10px; background: rgba(169,121,31,0.08); border: 1px solid var(--brass-soft); border-radius: 10px; padding: 14px 18px; max-width: 640px; margin: 0 auto; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+.hs-transparency-note svg { color: var(--brass); flex-shrink: 0; margin-top: 1px; }
+
+/* Roadmap */
+.hs-roadmap-list { display: flex; flex-direction: column; gap: 10px; max-width: 420px; margin: 0 auto; }
+.hs-roadmap-item { display: flex; align-items: center; gap: 10px; background: var(--paper-card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--ink); }
+.hs-roadmap-item svg { color: var(--line); flex-shrink: 0; }
+
+/* Newsletter */
+.hs-newsletter-form { display: flex; gap: 10px; max-width: 420px; margin: 0 auto; flex-wrap: wrap; justify-content: center; }
+.hs-newsletter-input { flex: 1 1 220px; }
+.hs-newsletter-btn { flex: 0 0 auto; }
+.hs-newsletter-confirm { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--verdant); font-weight: 600; font-size: 13.5px; }
+.hs-newsletter-error { text-align: center; color: var(--rust); font-size: 12px; margin-top: 8px; }
+
 @media (max-width: 640px) {
   .hs-section { padding: 40px 16px; }
   .hs-headline { font-size: 22px; }

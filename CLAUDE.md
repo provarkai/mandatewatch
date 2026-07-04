@@ -110,12 +110,28 @@ surfaces during a defined election period, gated by **Election Mode** (see below
    visibly disabled ("Coming soon"), not dead links, since neither feature is built yet. The
    election countdown/"Will you vote?" widget (`CountdownTimer`/`VotePoll`) moved from always-
    visible to `{electionModeEnabled && (...)}` — same flag as item 5, not a new mechanism.
+8. **Institutional trust & governance sequence** (Slice 1C) — inserted into `HomepageStory.jsx`
+   after Slice 1B's product-discovery run (Comparison Cards → Live Preview → How It Works →
+   Audience Cards): Institutional Trust (relocated `TrustGrid`) → Accountability Standard →
+   Methodology (relocated `MethodologySection`) → Open Data Philosophy → Principles → Transparency
+   → Research & Media (relocated/retitled `InsightsPreview`) → Roadmap → Newsletter → Public Beta →
+   final CTA. `Principles` renders `platform.brand.values` directly; `Roadmap` renders
+   `platform.products.filter(p => p.status === "unreleased")` directly — the Product Module *is*
+   the roadmap, no separate data structure. `Newsletter` has a real capture backend
+   (`newsletter_signups`, public-insert/admin-only-read) — no in-app admin UI to browse it yet, view
+   it via the Supabase Table Editor. The full Stripe/GitHub-style mega-footer and four-pillar nav
+   (Platform/Participation/Accountability/Resources) discussed alongside this are **explicitly
+   deferred** — they imply ~15 real destination pages this router-less SPA doesn't have yet, and
+   need a routing decision first.
 
 ## Still open
 - Stewardship (claimed rep posts what they've delivered, citizens verify) — still local-only.
 - Election Watch / Aspirants real data — still fully mock (`ASPIRANTS = []`).
 - Footer's Resources/Company/Support/Legal columns are intentionally empty (no real pages/routes
   exist yet in this SPA) — populate once those destinations are real, not with placeholder links.
+- Mega-footer + four-pillar nav (Platform/Participation/Accountability/Resources) redesign — needs
+  a routing decision first (no router exists in this SPA today); see item 8 above.
+- No in-app admin UI to view/export `newsletter_signups` yet — Supabase Table Editor only.
 - Insights, Pulse Reports/Rankings/Index, Open Civic API, Research Centre, Developer Platform,
   Analytics Suite are registered in `src/platform/platform.config.ts`'s `PRODUCTS` as `unreleased`
   — metadata only, nothing built.

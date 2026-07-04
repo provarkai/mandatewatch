@@ -101,6 +101,7 @@ export interface DesignTokens {
     verdantDark: string;
     brass: string;
     brassSoft: string;
+    brassDark: string;
     rust: string;
     paper: string;
     paperCard: string;

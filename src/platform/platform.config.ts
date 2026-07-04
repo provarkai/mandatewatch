@@ -149,6 +149,11 @@ export const DESIGN_TOKENS: DesignTokens = {
     verdantDark: "#143D29",
     brass: "#A9791F",
     brassSoft: "#D9B45C",
+    // A darker variant specifically for small brass TEXT (badges/CTAs) -- the base --brass value
+    // fails WCAG AA (~3.2-3.6:1) at typical UI text sizes; this passes (~5.2-5.8:1) while staying
+    // in the same brass/gold hue family, mirroring the existing --verdant-dark pattern. Found via
+    // a real axe DevTools scan during Slice 1D — see CLAUDE.md.
+    brassDark: "#7F5B17",
     rust: "#A6432E",
     paper: "#EEF0E6",
     paperCard: "#F7F8F2",

@@ -2293,6 +2293,7 @@ export default function MandateWatch() {
           --verdant-dark: ${platform.designTokens.colors.verdantDark};
           --brass: ${platform.designTokens.colors.brass};
           --brass-soft: ${platform.designTokens.colors.brassSoft};
+          --brass-dark: ${platform.designTokens.colors.brassDark};
           --rust: ${platform.designTokens.colors.rust};
           --paper: ${platform.designTokens.colors.paper};
           --paper-card: ${platform.designTokens.colors.paperCard};
@@ -2577,7 +2578,7 @@ export default function MandateWatch() {
         .mw-stewardship-cta {
           display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
           background: rgba(169,121,31,0.1); border: 1.5px solid var(--brass); border-radius: 9px;
-          padding: 13px 16px; cursor: pointer; color: var(--brass); font-family: 'IBM Plex Mono', monospace;
+          padding: 13px 16px; cursor: pointer; color: var(--brass-dark); font-family: 'IBM Plex Mono', monospace;
           font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
         }
         .mw-stewardship-cta span { flex: 1; }
@@ -2603,7 +2604,7 @@ export default function MandateWatch() {
         }
         .mw-official-badge {
           display: inline-flex; align-items: center; gap: 4px; font-family: 'IBM Plex Mono'; font-size: 9px;
-          text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; color: var(--brass);
+          text-transform: uppercase; letter-spacing: 0.03em; font-weight: 700; color: var(--brass-dark);
           background: rgba(169,121,31,0.1); border: 1px solid var(--brass); border-radius: 4px; padding: 1px 5px; margin-left: 6px;
         }
         .mw-comment-row-official { background: rgba(169,121,31,0.06); border-radius: 8px; padding: 8px; margin: -8px; }

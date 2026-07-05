@@ -149,6 +149,19 @@ surfaces during a defined election period, gated by **Election Mode** (see below
     (`isKnownPath`/`tabFromPath` in `src/lib/routing.js`, unit-tested via `vitest` —
     `npm test`); `prefers-reduced-motion` support and a `.mw-search` focus-visible fix;
     `manifest.json`/`robots.txt`/`sitemap.xml` added.
+11. **Real axe DevTools scan, fixes applied** — the user ran axe on the Slice 1D build and found:
+    an unlabeled `<select>` (the region/state filter — fixed with `aria-label`, plus the two
+    identical filters on Aspirants/Demands that shared the gap); `.hs-step-number` using `--line`
+    (a border color) as text, 1.37:1 contrast (fixed → `--ink-soft`); four small-text `--brass`
+    usages in `homepage-story.css` at 3.35-3.62:1 (fixed → `--verdant`, confirming the contrast
+    gap already flagged, unconfirmed, in item 10's QA report); and, found proactively afterward by
+    computing the *actual composited* contrast (not the flat-token number) for
+    `.mw-stewardship-cta`/`.mw-official-badge`'s brass-tinted backgrounds — 3.24:1, also failing.
+    Added **`--brass-dark`** (`#7F5B17`, mirrors the existing `--verdant-dark` pattern) rather than
+    switching those two to `--verdant` like the homepage instances, since they specifically mean
+    "official response," distinct from the `--verdant` "verified claim" badge — color-family
+    swaps would blur that. All fixes verified against real computed luminance/contrast math, not
+    guessed.
 
 ## Security notes (reviewed, not a full pentest)
 - **Client-side route/tab visibility is never the actual security boundary in this app — RLS is.**

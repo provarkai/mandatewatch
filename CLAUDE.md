@@ -12,10 +12,8 @@ surfaces during a defined election period, gated by **Election Mode** (see below
 architecture specification). **Read `docs/architecture/RECONCILIATION-NOTE.md` before trusting any
 of its "current state" claims** — it was written against the original client-only prototype and
 significantly predates this file's record of what's actually shipped. Where the two disagree,
-*this file* wins. Two of its findings are still genuinely accurate against the real app today and
-worth acting on eventually: the PulseMap component still colors by rep-count, not sentiment
-(MPAS §13.1); and the six pilot states are only *displayed* as rollout messaging, not actually
-enforced as a feature gate (MPAS §18.2-18.3).
+*this file* wins. Its PulseMap-naming (§13.1) and pilot-state-enforcement (§18.2-18.3) findings
+were both real when written but are now resolved — see "Slices shipped" item 12 below.
 
 ## Core capabilities
 - Representative Directory
@@ -171,6 +169,18 @@ enforced as a feature gate (MPAS §18.2-18.3).
     "official response," distinct from the `--verdant` "verified claim" badge — color-family
     swaps would blur that. All fixes verified against real computed luminance/contrast math, not
     guessed.
+12. **Pilot-state gating, real Stewardship, sentiment PulseMap** — three MPAS-v2.md findings
+    closed in one slice: (a) `launch_states` table (`0007_pilot_launch_states.sql`) is now the
+    single source of truth for which states can file demands/post discussion — `BetaSection`
+    displays it directly (no more static `ROLLOUT.launchStates`, removed from
+    `platform.config.ts`/`types.ts` to kill the drift risk), and the existing insert policies on
+    `demands`/`threads`/`comments` now also require the poster's own `profiles.state_code` to be
+    enabled; (b) Stewardship is real (`0008_stewardship.sql`, `stewardship_entries`/
+    `stewardship_verifications`, exact mirror of the demands/threads vote-trigger pattern) —
+    `handleVerifyStewardship` also gained a sign-in gate it never had; (c) `NigeriaMap` now colors
+    by average approval (computed once in the parent as `stateStats`, not inside the map
+    component) instead of officials-tracked volume, resolving the "PulseMap doesn't show
+    sentiment" mismatch by making the map deliver what its name promises.
 
 ## Security notes (reviewed, not a full pentest)
 - **Client-side route/tab visibility is never the actual security boundary in this app — RLS is.**
@@ -210,14 +220,17 @@ enforced as a feature gate (MPAS §18.2-18.3).
   every table individually.
 
 ## Still open
-- Stewardship (claimed rep posts what they've delivered, citizens verify) — still local-only.
 - Election Watch / Aspirants real data — still fully mock (`ASPIRANTS = []`).
 - Footer's Resources/Company/Support/Legal columns are intentionally empty (no real pages/routes
   exist yet) — populate once those destinations are real, not with placeholder links. Routing
   itself is no longer the blocker (item 9) — the pages themselves still need to be built.
-- Mega-footer + four-pillar nav (Platform/Participation/Accountability/Resources) redesign — this is
-  Slice 1D, not yet started.
+- Mega-footer + four-pillar nav (Platform/Participation/Accountability/Resources) redesign — not
+  started (routing exists to support it; "Slice 1D" ended up being the engineering-readiness pass
+  instead, see item 10 — this redesign is still just queued, unnamed).
 - No in-app admin UI to view/export `newsletter_signups` yet — Supabase Table Editor only.
+- No admin UI to toggle a state's `launch_states.participation_enabled` yet — SQL Editor only
+  (deliberate scoping for this pass, see the migration's comment); a control mirroring the
+  existing Election Mode toggle in the Admin panel would be the natural follow-up.
 - Insights, Pulse Reports/Rankings/Index, Open Civic API, Research Centre, Developer Platform,
   Analytics Suite are registered in `src/platform/platform.config.ts`'s `PRODUCTS` as `unreleased`
   — metadata only, nothing built.

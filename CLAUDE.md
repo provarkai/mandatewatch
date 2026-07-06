@@ -8,6 +8,15 @@ website — its core purpose is measuring governance *between* elections through
 participation. Election-related functionality (Election Watch / Aspirants) is secondary and only
 surfaces during a defined election period, gated by **Election Mode** (see below).
 
+**Long-term product/architecture vision:** `docs/architecture/MPAS-v2.md` (38-chapter product
+architecture specification). **Read `docs/architecture/RECONCILIATION-NOTE.md` before trusting any
+of its "current state" claims** — it was written against the original client-only prototype and
+significantly predates this file's record of what's actually shipped. Where the two disagree,
+*this file* wins. Two of its findings are still genuinely accurate against the real app today and
+worth acting on eventually: the PulseMap component still colors by rep-count, not sentiment
+(MPAS §13.1); and the six pilot states are only *displayed* as rollout messaging, not actually
+enforced as a feature gate (MPAS §18.2-18.3).
+
 ## Core capabilities
 - Representative Directory
 - Approval Ratings
@@ -212,3 +221,13 @@ surfaces during a defined election period, gated by **Election Mode** (see below
 - Insights, Pulse Reports/Rankings/Index, Open Civic API, Research Centre, Developer Platform,
   Analytics Suite are registered in `src/platform/platform.config.ts`'s `PRODUCTS` as `unreleased`
   — metadata only, nothing built.
+- **Legal instruments — genuinely unaddressed, not engineering work** (surfaced by MPAS-v2.md
+  Chapter 25, Risks 20–23): no real Terms of Service or Privacy Policy the user actually agrees to
+  (draft starting points at `docs/legal/`, explicitly not legal advice — need real review); no
+  documented legal entity structure for MandateWatch; no content-licensing terms for citizen-
+  submitted demands/comments/Stewardship entries; no legal review of Nigerian Electoral Act
+  compliance for election-adjacent polling (Election Watch/aspirant favorability) near a real
+  election date. None of these are resolvable by writing code — they need the user or legal counsel.
+- Community standards document (for future moderation), a notification system (so a citizen learns
+  when their demand gets a response), and rate limiting on content creation are all still genuinely
+  unbuilt (MPAS-v2.md Chapters 15–16).

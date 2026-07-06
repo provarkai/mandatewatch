@@ -63,10 +63,6 @@ const DEMAND_STATUS_STAMP = {
   delivered: "stamp-navy",
 };
 
-// Stewardship entries — reps (once claimed) post what they've delivered; citizens verify the claim.
-// Starts empty like demands/threads — this is a real accountability record, not seeded content.
-const STEWARDSHIP = [];
-
 
 
 
@@ -150,14 +146,7 @@ function VotePoll() {
 }
 
 
-function NigeriaMap({ repsData, onSelectState, hoveredState, onHoverState, selectedState }) {
-  const counts = useMemo(() => {
-    const c = {};
-    repsData.forEach((r) => { c[r.state] = (c[r.state] || 0) + 1; });
-    return c;
-  }, [repsData]);
-  const max = Math.max(1, ...Object.values(counts));
-
+function NigeriaMap({ stateStats, onSelectState, hoveredState, onHoverState, selectedState }) {
   // The state-path data is ~65KB of raw SVG path strings -- lazy-imported here instead of at
   // module load, so it's only ever fetched when a visitor actually opens the PulseMap tab.
   const [mapData, setMapData] = useState(null);
@@ -179,17 +168,27 @@ function NigeriaMap({ repsData, onSelectState, hoveredState, onHoverState, selec
     <div className="mw-map-wrap">
       <svg className="mw-map-svg" viewBox={mapData.NIGERIA_MAP_VIEWBOX} role="img" aria-label="Map of Nigeria by state">
         {mapData.NIGERIA_STATE_PATHS.map(({ state, d }) => {
-          const count = counts[state] || 0;
-          const intensity = count / max;
+          const stats = stateStats[state];
+          const count = stats?.count || 0;
           const isHovered = hoveredState === state;
           const isSelected = selectedState === state;
+          // Colored by average approval, not volume tracked -- a state with no data yet stays
+          // neutral paper; approval above/below the neutral 50% midpoint shades toward
+          // verdant/rust respectively, same tokens used for individual rep scores elsewhere.
+          let fill = "var(--paper)";
+          if (count > 0) {
+            const delta = (stats.avgApproval - 50) / 50; // -1..+1
+            fill = delta >= 0
+              ? `rgba(31,94,63,${0.15 + delta * 0.75})`
+              : `rgba(166,67,46,${0.15 + -delta * 0.75})`;
+          }
           return (
             <path
               key={state}
               d={d}
               className={`mw-map-path ${isSelected ? "mw-map-path-selected" : ""}`}
               style={{
-                fill: count === 0 ? "var(--paper)" : `rgba(31,94,63,${0.18 + intensity * 0.72})`,
+                fill,
                 filter: isHovered && !isSelected ? "brightness(0.88)" : "none",
               }}
               onClick={() => onSelectState(state)}
@@ -197,16 +196,16 @@ function NigeriaMap({ repsData, onSelectState, hoveredState, onHoverState, selec
               onMouseLeave={() => onHoverState && onHoverState(null)}
               tabIndex={0}
               role="button"
-              aria-label={`${state} — ${count} tracked`}
+              aria-label={count > 0 ? `${state} — ${count} tracked, ${stats.avgApproval}% average approval` : `${state} — 0 tracked`}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onSelectState(state); }}
             />
           );
         })}
       </svg>
       <div className="mw-map-legend">
-        <span>Fewer tracked</span>
+        <span>Lower approval</span>
         <span className="mw-map-legend-bar" />
-        <span>More tracked</span>
+        <span>Higher approval</span>
       </div>
     </div>
   );
@@ -661,7 +660,7 @@ function CommentRow({ comment, myVote, onVote, onReply, replies, commentVotes, o
   );
 }
 
-function ThreadDetail({ thread, rep, comments, threadVote, commentVotes, onVoteThread, onVoteComment, onAddComment, onClose, user, isVerifiedForThisRep }) {
+function ThreadDetail({ thread, rep, comments, threadVote, commentVotes, onVoteThread, onVoteComment, onAddComment, onClose, user, isVerifiedForThisRep, participationBlocked, launchStates }) {
   const [replyBody, setReplyBody] = useState("");
   const [replyTo, setReplyTo] = useState(null);
 
@@ -710,6 +709,13 @@ function ThreadDetail({ thread, rep, comments, threadVote, commentVotes, onVoteT
         </div>
 
         <div className="mw-reply-box">
+          {participationBlocked ? (
+            <div className="mw-form-hint">
+              Replying is currently only open to citizens in a launch state: {launchStates.join(", ")}.
+              We're expanding to more states soon.
+            </div>
+          ) : (
+          <>
           {replyTo && (
             <div className="mw-form-hint" style={{ marginBottom: 6 }}>
               Replying to a comment. <button className="mw-link-btn" onClick={() => setReplyTo(null)}>Cancel</button>
@@ -731,13 +737,15 @@ function ThreadDetail({ thread, rep, comments, threadVote, commentVotes, onVoteT
               {isVerifiedForThisRep ? "Post official response" : "Post reply"}
             </button>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-function NewThreadModal({ open, onClose, onSubmit }) {
+function NewThreadModal({ open, onClose, onSubmit, participationBlocked, launchStates, user }) {
   const [mode, setMode] = useState("rep");
   const [repId, setRepId] = useState("");
   const [issueTag, setIssueTag] = useState("");
@@ -749,6 +757,22 @@ function NewThreadModal({ open, onClose, onSubmit }) {
   }, [open]);
 
   if (!open) return null;
+
+  if (participationBlocked) {
+    return (
+      <div className="mw-modal-backdrop" onClick={onClose}>
+        <div className="mw-modal" onClick={(e) => e.stopPropagation()}>
+          <button className="mw-modal-close" onClick={onClose}><X size={18} /></button>
+          <div className="mw-section-eyebrow">Start a discussion</div>
+          <h2 className="mw-modal-name" style={{ marginBottom: 12 }}>Not available in {user.state} yet</h2>
+          <p className="mw-form-hint">
+            Discussion is currently only open to citizens in a launch state: {launchStates.join(", ")}.
+            We're expanding to more states soon.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   function submit() {
     if (!title.trim() || !body.trim()) return;
@@ -1477,7 +1501,7 @@ function ClaimRepModal({ rep, onClose, onSubmit }) {
   );
 }
 
-function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user }) {
+function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user, participationBlocked, launchStates }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [repId, setRepId] = useState("");
@@ -1506,6 +1530,22 @@ function SubmitDemandModal({ open, onClose, onSubmit, prefillRepId, user }) {
   }, [open, prefillRepId, user]);
 
   if (!open) return null;
+
+  if (participationBlocked) {
+    return (
+      <div className="mw-modal-backdrop" onClick={onClose}>
+        <div className="mw-modal" onClick={(e) => e.stopPropagation()}>
+          <button className="mw-modal-close" onClick={onClose}><X size={18} /></button>
+          <div className="mw-section-eyebrow">File a demand</div>
+          <h2 className="mw-modal-name" style={{ marginBottom: 12 }}>Not available in {user.state} yet</h2>
+          <p className="mw-form-hint">
+            Demands can currently only be filed by citizens in a launch state: {launchStates.join(", ")}.
+            We're expanding to more states soon.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const prefillRep = prefillRepId ? REPS.find((r) => r.id === prefillRepId) : null;
   // Signed-in users can only file demands for reps in their own state — no override. Guests (no
@@ -1637,6 +1677,7 @@ export default function MandateWatch() {
   const knownPath = isKnownPath(location.pathname);
   function setTab(key) { navigate(TAB_PATHS[key] ?? "/"); }
   const [electionModeEnabled, setElectionModeEnabled] = useState(false);
+  const [launchStates, setLaunchStates] = useState([]);
   const [query, setQuery] = useState("");
   const [chamberFilter, setChamberFilter] = useState("All");
   const [stateFilter, setStateFilter] = useState("All");
@@ -1782,6 +1823,21 @@ export default function MandateWatch() {
 
   const repById = useMemo(() => Object.fromEntries(repsData.map((r) => [r.id, r])), [repsData]);
   const phase1Reps = useMemo(() => repsData.filter((r) => PHASE1_CHAMBERS.includes(r.chamber)), [repsData]);
+  // Per-state tracked-count + average approval, computed once here (not inside NigeriaMap) so the
+  // hover/selected label above the map can show the same real numbers the map itself colors by.
+  const stateStats = useMemo(() => {
+    const sums = {};
+    phase1Reps.forEach((r) => {
+      if (!sums[r.state]) sums[r.state] = { count: 0, approvalSum: 0 };
+      sums[r.state].count += 1;
+      sums[r.state].approvalSum += r.approval;
+    });
+    const stats = {};
+    Object.entries(sums).forEach(([state, { count, approvalSum }]) => {
+      stats[state] = { count, avgApproval: Math.round(approvalSum / count) };
+    });
+    return stats;
+  }, [phase1Reps]);
   const openRep = openRepId ? repById[openRepId] : null;
   const ownsRep = (repId) => !!user && repById[repId]?.claimedBy === user.id;
 
@@ -1863,6 +1919,26 @@ export default function MandateWatch() {
     if (error) return;
     setElectionModeEnabled(next);
   }
+
+  // The real, server-enforced list of states where Demands/Discussion participation is currently
+  // open -- also the single source of truth BetaSection displays, so the shown badges can never
+  // drift from what's actually enforced server-side (see migration 0007).
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("launch_states")
+      .select("state_code")
+      .eq("participation_enabled", true)
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setLaunchStates(data.map((row) => row.state_code));
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Only meaningful once signed in -- guests are already stopped earlier by the sign-in gate on
+  // each handler, before this check would ever run.
+  const participationBlocked = !!user && launchStates.length > 0 && !launchStates.includes(user.state);
 
   // Hydrate the signed-in user's own claim requests, so "Claim & Verify" reflects a pending or
   // rejected request instead of always showing as available.
@@ -2175,23 +2251,40 @@ export default function MandateWatch() {
     setActiveRepView(null);
   }
 
-  function handleAddStewardship({ title, description }) {
+  async function handleAddStewardship({ title, description }) {
     if (!stewardshipRepId) return;
-    const newEntry = {
-      id: Date.now(),
-      repId: stewardshipRepId,
-      title,
-      description,
-      verifiedCount: 0,
-      date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-    };
-    setStewardshipList((prev) => [newEntry, ...prev]);
+    const { data, error } = await supabase
+      .from("stewardship_entries")
+      .insert({ rep_id: stewardshipRepId, title, description })
+      .select()
+      .single();
+    if (error || !data) return; // RLS silently rejects a non-owner; nothing to add locally
+
+    setStewardshipList((prev) => [
+      {
+        id: data.id,
+        repId: data.rep_id,
+        title: data.title,
+        description: data.description,
+        verifiedCount: data.verified_count,
+        date: new Date(data.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+      },
+      ...prev,
+    ]);
   }
 
-  function handleVerifyStewardship(entryId) {
+  async function handleVerifyStewardship(entryId) {
+    if (!user) { setAuthOpen(true); return; }
     if (verifiedStewardshipIds.includes(entryId)) return;
+
     setVerifiedStewardshipIds((prev) => [...prev, entryId]);
     setStewardshipList((prev) => prev.map((e) => (e.id === entryId ? { ...e, verifiedCount: e.verifiedCount + 1 } : e)));
+
+    const { error } = await supabase.from("stewardship_verifications").insert({ entry_id: entryId, user_id: user.id });
+    if (error) {
+      setVerifiedStewardshipIds((prev) => prev.filter((id) => id !== entryId));
+      setStewardshipList((prev) => prev.map((e) => (e.id === entryId ? { ...e, verifiedCount: e.verifiedCount - 1 } : e)));
+    }
   }
 
   async function handleSubmitDemand({ title, description, repId }) {
@@ -2252,11 +2345,50 @@ export default function MandateWatch() {
   const [mapSelectedState, setMapSelectedState] = useState(null);
   const repsGridRef = useRef(null);
   const mandateColRef = useRef(null);
-  const [stewardshipList, setStewardshipList] = useState(STEWARDSHIP);
+  const [stewardshipList, setStewardshipList] = useState([]);
   const stewardshipRepIdMatch = location.pathname.match(/^\/representatives\/(\d+)\/stewardship/);
   const stewardshipRepId = stewardshipRepIdMatch ? Number(stewardshipRepIdMatch[1]) : null;
   const [verifiedStewardshipIds, setVerifiedStewardshipIds] = useState([]);
   const [mapHoveredState, setMapHoveredState] = useState(null);
+
+  // Live Stewardship entries from Supabase, replacing the local-only seed on load.
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("stewardship_entries")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setStewardshipList(
+          data.map((row) => ({
+            id: row.id,
+            repId: row.rep_id,
+            title: row.title,
+            description: row.description,
+            verifiedCount: row.verified_count,
+            date: new Date(row.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+          }))
+        );
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Hydrate which Stewardship entries the signed-in user has already verified, so the button
+  // still shows "already verified" after a reload -- not just within the current session.
+  useEffect(() => {
+    if (!user) { setVerifiedStewardshipIds([]); return; }
+    let cancelled = false;
+    supabase
+      .from("stewardship_verifications")
+      .select("entry_id")
+      .eq("user_id", user.id)
+      .then(({ data, error }) => {
+        if (error || !data || cancelled) return;
+        setVerifiedStewardshipIds(data.map((row) => row.entry_id));
+      });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const filtered = useMemo(() => {
     return repsData.filter((r) => {
@@ -2423,7 +2555,7 @@ export default function MandateWatch() {
         .mw-map-path:focus-visible { outline: none; stroke: var(--ink); stroke-width: 2; }
         .mw-map-path-selected { stroke: var(--paper); stroke-width: 1.5; }
         .mw-map-legend { display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono'; font-size: 9px; color: var(--ink-soft); }
-        .mw-map-legend-bar { width: 60px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--paper), var(--verdant)); border: 1px solid var(--line); }
+        .mw-map-legend-bar { width: 60px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--rust), var(--paper), var(--verdant)); border: 1px solid var(--line); }
 
         .stamp {
           font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 9.5px;
@@ -2882,6 +3014,7 @@ export default function MandateWatch() {
           user={user}
           onNavigate={(path) => { navigate(path); setTimeout(() => { if (repsGridRef.current) repsGridRef.current.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); }}
           onSignIn={() => setAuthOpen(true)}
+          launchStates={launchStates}
         />
       </Suspense>
 
@@ -2908,10 +3041,22 @@ export default function MandateWatch() {
       {tab === "pulsemap" && (
         <div className="mw-hero-map-section">
           <div className="mw-hero-map-label">
-            {mapSelectedState ? <b>{mapSelectedState}</b> : mapHoveredState ? <b>{mapHoveredState}</b> : "Tap a state"}
+            {(() => {
+              const activeState = mapSelectedState || mapHoveredState;
+              if (!activeState) return "Tap a state";
+              const stats = stateStats[activeState];
+              return (
+                <>
+                  <b>{activeState}</b>
+                  {stats && stats.count > 0 && (
+                    <span> — {stats.avgApproval}% avg. approval · {stats.count} tracked</span>
+                  )}
+                </>
+              );
+            })()}
           </div>
           <NigeriaMap
-            repsData={phase1Reps}
+            stateStats={stateStats}
             onSelectState={(s) => {
               setMapSelectedState(s);
               setStateFilter(s);
@@ -3198,11 +3343,16 @@ export default function MandateWatch() {
           const t = threadsList.find((t) => t.id === openThreadId);
           return !!(t && t.repId && ownsRep(t.repId) && activeRepView === t.repId);
         })()}
+        participationBlocked={participationBlocked}
+        launchStates={launchStates}
       />
       <NewThreadModal
         open={newThreadOpen}
         onClose={() => setNewThreadOpen(false)}
         onSubmit={(payload) => { handleStartThread(payload); setNewThreadOpen(false); }}
+        participationBlocked={participationBlocked}
+        launchStates={launchStates}
+        user={user}
       />
       <ClaimRepModal
         rep={claimModalRepId ? repById[claimModalRepId] : null}
@@ -3216,6 +3366,8 @@ export default function MandateWatch() {
         onSubmit={handleSubmitDemand}
         prefillRepId={submitPrefillRepId}
         user={user}
+        participationBlocked={participationBlocked}
+        launchStates={launchStates}
       />
 
       <footer className="mw-footer">

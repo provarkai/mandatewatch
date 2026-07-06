@@ -90,7 +90,9 @@ export interface FeatureFlags {
 export interface RolloutConfig {
   market: string;
   launchStrategyMessage: string;
-  launchStates: string[];
+  // Deliberately no `launchStates` here -- the real, server-enforced list lives in the
+  // `launch_states` Supabase table (see supabase/migrations/0007_pilot_launch_states.sql) and is
+  // fetched directly in App.jsx, so there's exactly one source of truth, not two that could drift.
 }
 
 export interface DesignTokens {

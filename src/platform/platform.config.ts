@@ -136,7 +136,6 @@ export const FEATURE_FLAGS: FeatureFlags = {
 export const ROLLOUT: RolloutConfig = {
   market: "Nigeria",
   launchStrategyMessage: "Launching across Nigeria, expanding one community at a time.",
-  launchStates: ["Lagos", "Ogun", "Rivers", "Kano", "Abia", "Edo"],
 };
 
 // Mirrors the real design tokens already live in App.jsx's inline <style> :root block

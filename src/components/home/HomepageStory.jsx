@@ -22,7 +22,7 @@ import { BetaSection } from "./BetaSection";
 import { CTASection } from "./CTASection";
 import { TransitionSection } from "./TransitionSection";
 
-export default function HomepageStory({ phase1Reps, demandsList, threadsList, repById, user, onNavigate, onSignIn }) {
+export default function HomepageStory({ phase1Reps, demandsList, threadsList, repById, user, onNavigate, onSignIn, launchStates }) {
   return (
     <div className="hs-root">
       <ComparisonCards />
@@ -41,7 +41,7 @@ export default function HomepageStory({ phase1Reps, demandsList, threadsList, re
       <Roadmap />
       <Newsletter />
 
-      <BetaSection phase1Reps={phase1Reps} />
+      <BetaSection phase1Reps={phase1Reps} launchStates={launchStates} />
       <CTASection user={user} onNavigate={onNavigate} onSignIn={onSignIn} />
       <TransitionSection />
     </div>

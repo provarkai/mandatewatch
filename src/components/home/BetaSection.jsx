@@ -1,10 +1,10 @@
 import { StorySection } from "./StorySection";
-import { usePlatform } from "../../platform/usePlatform";
 
-// The state count is computed from real data, not the spec's static placeholder number -- so it
-// never silently drifts from what's actually seeded, same principle applied all session.
-export function BetaSection({ phase1Reps }) {
-  const platform = usePlatform();
+// The state count and the launch-state badges are both computed from real, fetched data -- not
+// the static platform.rollout.launchStates placeholder -- so what's displayed can never drift
+// from what's actually enforced server-side (see supabase/migrations/0007_pilot_launch_states.sql
+// and the launch_states fetch in App.jsx).
+export function BetaSection({ phase1Reps, launchStates }) {
   const stateCount = new Set(phase1Reps.map((r) => r.state)).size;
 
   return (
@@ -19,7 +19,7 @@ export function BetaSection({ phase1Reps }) {
       }
     >
       <div className="hs-beta-badges">
-        {platform.rollout.launchStates.map((state) => (
+        {launchStates.map((state) => (
           <span className="hs-beta-badge" key={state}>{state}</span>
         ))}
       </div>

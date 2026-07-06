@@ -1047,7 +1047,7 @@ function RepForm({ initial, onSubmit, onCancel, submitLabel }) {
   );
 }
 
-function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsList, threadsList, aspirantsList, commentsList, pendingClaims, onApproveClaim, onRejectClaim, electionModeEnabled, onToggleElectionMode }) {
+function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsList, threadsList, aspirantsList, commentsList, pendingClaims, onApproveClaim, onRejectClaim, electionModeEnabled, onToggleElectionMode, allLaunchStates, onToggleLaunchState }) {
   const [section, setSection] = useState("add");
   const [editingId, setEditingId] = useState(null);
   const [searchQ, setSearchQ] = useState("");
@@ -1103,10 +1103,40 @@ function AdminPanel({ repsData, onAddRep, onUpdateRep, onAddAspirant, demandsLis
         <button className={`mw-chip ${section === "manage" ? "active" : ""}`} onClick={() => setSection("manage")}>Manage Reps ({repsData.length})</button>
         <button className={`mw-chip ${section === "aspirant" ? "active" : ""}`} onClick={() => setSection("aspirant")}>Add an Aspirant</button>
         <button className={`mw-chip ${section === "claims" ? "active" : ""}`} onClick={() => setSection("claims")}>Rep Claims ({pendingClaims.length})</button>
+        <button className={`mw-chip ${section === "launchStates" ? "active" : ""}`} onClick={() => setSection("launchStates")}>Launch States ({allLaunchStates.filter((s) => s.enabled).length})</button>
         <button className={`mw-chip ${section === "export" ? "active" : ""}`} onClick={() => setSection("export")}>Export Data</button>
       </div>
 
       <div className="mw-page-card">
+        {section === "launchStates" && (
+          <div style={{ maxHeight: 480, overflowY: "auto" }}>
+            <p className="mw-form-hint" style={{ marginTop: 0 }}>
+              Representative information is national regardless of this list — only Demands/Discussion
+              participation is gated by it. Toggling a state on lets its citizens file demands and post
+              immediately.
+            </p>
+            {Object.entries(REGIONS).map(([region, states]) => (
+              <div key={region} style={{ marginBottom: 14 }}>
+                <div className="mw-rep-demand-title" style={{ marginBottom: 6 }}>{region}</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {states.map((state) => {
+                    const enabled = allLaunchStates.find((s) => s.stateCode === state)?.enabled ?? false;
+                    return (
+                      <button
+                        key={state}
+                        className={`mw-chip ${enabled ? "active" : ""}`}
+                        onClick={() => onToggleLaunchState(state)}
+                      >
+                        {state}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {section === "claims" && (
           <div style={{ maxHeight: 480, overflowY: "auto" }}>
             {pendingClaims.map((c) => {
@@ -1677,7 +1707,7 @@ export default function MandateWatch() {
   const knownPath = isKnownPath(location.pathname);
   function setTab(key) { navigate(TAB_PATHS[key] ?? "/"); }
   const [electionModeEnabled, setElectionModeEnabled] = useState(false);
-  const [launchStates, setLaunchStates] = useState([]);
+  const [allLaunchStates, setAllLaunchStates] = useState([]); // [{stateCode, enabled}], every state
   const [query, setQuery] = useState("");
   const [chamberFilter, setChamberFilter] = useState("All");
   const [stateFilter, setStateFilter] = useState("All");
@@ -1920,21 +1950,32 @@ export default function MandateWatch() {
     setElectionModeEnabled(next);
   }
 
-  // The real, server-enforced list of states where Demands/Discussion participation is currently
-  // open -- also the single source of truth BetaSection displays, so the shown badges can never
-  // drift from what's actually enforced server-side (see migration 0007).
+  // Every state's participation status, real and server-enforced (see migration 0007) -- fetched
+  // once, in full, so both the public "which states can participate" gating below and the Admin
+  // panel's per-state toggle list (which needs the disabled states too) read from one source.
   useEffect(() => {
     let cancelled = false;
     supabase
       .from("launch_states")
-      .select("state_code")
-      .eq("participation_enabled", true)
+      .select("state_code, participation_enabled")
       .then(({ data, error }) => {
         if (error || !data || cancelled) return;
-        setLaunchStates(data.map((row) => row.state_code));
+        setAllLaunchStates(data.map((row) => ({ stateCode: row.state_code, enabled: row.participation_enabled })));
       });
     return () => { cancelled = true; };
   }, []);
+
+  // The single source of truth BetaSection displays, so the shown badges can never drift from
+  // what's actually enforced server-side.
+  const launchStates = useMemo(() => allLaunchStates.filter((s) => s.enabled).map((s) => s.stateCode), [allLaunchStates]);
+
+  async function handleToggleLaunchState(stateCode) {
+    const current = allLaunchStates.find((s) => s.stateCode === stateCode)?.enabled ?? false;
+    const next = !current;
+    const { error } = await supabase.from("launch_states").update({ participation_enabled: next }).eq("state_code", stateCode);
+    if (error) return;
+    setAllLaunchStates((prev) => prev.map((s) => (s.stateCode === stateCode ? { ...s, enabled: next } : s)));
+  }
 
   // Only meaningful once signed in -- guests are already stopped earlier by the sign-in gate on
   // each handler, before this check would ever run.
@@ -3272,6 +3313,8 @@ export default function MandateWatch() {
           onRejectClaim={handleRejectClaim}
           electionModeEnabled={electionModeEnabled}
           onToggleElectionMode={handleToggleElectionMode}
+          allLaunchStates={allLaunchStates}
+          onToggleLaunchState={handleToggleLaunchState}
         />
       )}
       </>

@@ -181,6 +181,13 @@ were both real when written but are now resolved — see "Slices shipped" item 1
     by average approval (computed once in the parent as `stateStats`, not inside the map
     component) instead of officials-tracked volume, resolving the "PulseMap doesn't show
     sentiment" mismatch by making the map deliver what its name promises.
+13. **Admin toggle for launch states** (`0009_launch_states_admin_toggle.sql`) — seeds every real
+    state into `launch_states` (disabled by default, the 6 pilot states untouched) and adds an
+    admin-gated update policy (plain RLS, same reasoning as `app_settings`'s Election Mode toggle —
+    one boolean column, no cross-table risk). `App.jsx` fetches all rows into `allLaunchStates`,
+    deriving the public `launchStates` gating list via `useMemo` — one fetch, one source of truth.
+    `AdminPanel` gained a "Launch States" tab (states grouped by region, a toggle chip each) — no
+    more SQL Editor needed to graduate a state.
 
 ## Security notes (reviewed, not a full pentest)
 - **Client-side route/tab visibility is never the actual security boundary in this app — RLS is.**
@@ -228,9 +235,6 @@ were both real when written but are now resolved — see "Slices shipped" item 1
   started (routing exists to support it; "Slice 1D" ended up being the engineering-readiness pass
   instead, see item 10 — this redesign is still just queued, unnamed).
 - No in-app admin UI to view/export `newsletter_signups` yet — Supabase Table Editor only.
-- No admin UI to toggle a state's `launch_states.participation_enabled` yet — SQL Editor only
-  (deliberate scoping for this pass, see the migration's comment); a control mirroring the
-  existing Election Mode toggle in the Admin panel would be the natural follow-up.
 - Insights, Pulse Reports/Rankings/Index, Open Civic API, Research Centre, Developer Platform,
   Analytics Suite are registered in `src/platform/platform.config.ts`'s `PRODUCTS` as `unreleased`
   — metadata only, nothing built.
